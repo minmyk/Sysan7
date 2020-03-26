@@ -1,27 +1,26 @@
 import networkx as nx
 import plotly
 import plotly.graph_objs as go
-import numpy as np
+
 
 class NetworkXPlotter(object):
     """Class for casting graph to NetworkX graph and plotting it."""
 
-    def __init__(self, customG, layout="spring", dim=2):
+    def __init__(self, custom_g, layout="spring", dim=2):
         """
         Args:
-            customG(Graph): object of our own class with nodes and connections.
+            custom_g(Graph): object of our own class with nodes and connections.
             layout(str): type of layout for ploting ('spring', 'circular', 'spectral', 'random').
         Raises:
             ValueError: not implemented type of layout.
         """
         # currently only dim = 2 is possible
         self.dim = dim
-
+        self.html = None
         self.G = nx.DiGraph()
-        nodes = list(map(str, customG.nodes))
         edges = []
         weights = []
-        for node in customG.nodes:
+        for node in custom_g.nodes:
             for k, v in node.connections.items():
                 edges.append((str(node), str(k)))
                 weights.append(v)
@@ -78,18 +77,20 @@ class NetworkXPlotter(object):
             edge_scale(float): multiplier of edge size. Formula edge_width = edge_scale*edge_weight + 1
             title(str): title of the plot
             fontsize(int): fontsize of the title
-            paper_bgcolor(str or None): (Experiment) change background color None or 'rgba(xxx,xxx,xxx,0.3)' - not recommended
-            plot_bgcolor(str or None): (Experiment) change background color None or 'rgba(xxx,xxx,xxx,0.5)' - not recommended
+            paper_bgcolor(str or None): (Experiment) change background color None or
+            'rgba(xxx,xxx,xxx,0.3)' - not recommended
+            plot_bgcolor(str or None): (Experiment) change background color None or
+            'rgba(xxx,xxx,xxx,0.5)' - not recommended
             plot_text(bool): True to write names of nodes on figure
         Returns:
             self(NetworkXPlotter) object of NetworkXPlotter class
         """
         # colorscale options
-        #'Greys' | 'YlGnBu' | 'Greens' | 'YlOrRd' | 'Bluered' | 'RdBu' |
-        #'Reds' | 'Blues' | 'Picnic' | 'Rainbow' | 'Portland' | 'Jet' | 'Magma'
-        #'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis'| 'Inferno'
+        # 'Greys' | 'YlGnBu' | 'Greens' | 'YlOrRd' | 'Bluered' | 'RdBu' |
+        # 'Reds' | 'Blues' | 'Picnic' | 'Rainbow' | 'Portland' | 'Jet' | 'Magma'
+        # 'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis'| 'Inferno'
         # look up for Plotly colorscale in internet for all options
-        traceRecode = []
+        trace_recode = []
         for edge in self.G.edges:
             x0, y0 = self.G.nodes[edge[0]]["pos"]
             x1, y1 = self.G.nodes[edge[1]]["pos"]
@@ -102,7 +103,7 @@ class NetworkXPlotter(object):
                 line_shape="spline",
                 opacity=edge_opacity,
             )
-            traceRecode.append(trace)
+            trace_recode.append(trace)
 
         middle_hover_trace = go.Scatter(
             x=[],
@@ -131,7 +132,7 @@ class NetworkXPlotter(object):
             middle_hover_trace["y"] += tuple([(y0 + y1) / 2])
             middle_hover_trace["hovertext"] += tuple([hovertext])
 
-        traceRecode.append(middle_hover_trace)
+        trace_recode.append(middle_hover_trace)
 
         node_trace = go.Scatter(
             x=[],
@@ -175,18 +176,18 @@ class NetworkXPlotter(object):
             node_info = text + "<br># of connections: " + str(len(adjacencies))
             node_trace["hovertext"] += tuple([node_info])
 
-        traceRecode.append(node_trace)
+        trace_recode.append(node_trace)
 
         fig = go.Figure(
-            data=traceRecode,
+            data=trace_recode,
             layout=go.Layout(
                 title=title,
                 showlegend=False,
                 hovermode="closest",
                 titlefont=dict(size=fontsize),
                 margin={"b": 40, "l": 40, "r": 40, "t": 40},
-                xaxis={"showgrid": False, "zeroline": False, "showticklabels": False,},
-                yaxis={"showgrid": False, "zeroline": False, "showticklabels": False,},
+                xaxis={"showgrid": False, "zeroline": False, "showticklabels": False, },
+                yaxis={"showgrid": False, "zeroline": False, "showticklabels": False, },
                 height=600,
                 paper_bgcolor=paper_bgcolor,
                 plot_bgcolor=plot_bgcolor,
