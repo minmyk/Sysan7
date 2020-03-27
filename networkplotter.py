@@ -62,7 +62,8 @@ class NetworkXPlotter(object):
         fontsize=16,
         paper_bgcolor=None,
         plot_bgcolor=None,
-        plot_text=False
+        plot_text=False,
+        text_color = None
     ):
         """
         Args:edge_opacity
@@ -81,6 +82,7 @@ class NetworkXPlotter(object):
             plot_bgcolor(str or None): (Experiment) change background color None or
             'rgba(xxx,xxx,xxx,0.5)' - not recommended
             plot_text(bool): True to write names of nodes on figure
+            text_color(str or None): text color
         Returns:
             self(NetworkXPlotter) object of NetworkXPlotter class
         """
@@ -154,8 +156,13 @@ class NetworkXPlotter(object):
                     title="Node Connections",
                     xanchor="left",
                     titleside="right",
+                    titlefont=dict(size=fontsize, color = text_color),
+                    tickfont=dict(size=fontsize, color = text_color),
                 ),
             ),
+            textfont=dict(
+                color=text_color
+            )
         )
 
         for node in self.G.nodes():
@@ -183,7 +190,7 @@ class NetworkXPlotter(object):
                 title=title,
                 showlegend=False,
                 hovermode="closest",
-                titlefont=dict(size=fontsize),
+                titlefont=dict(size=fontsize, color = text_color),
                 margin={"b": 40, "l": 40, "r": 40, "t": 40},
                 xaxis={"showgrid": False, "zeroline": False, "showticklabels": False, },
                 yaxis={"showgrid": False, "zeroline": False, "showticklabels": False, },
