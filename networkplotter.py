@@ -187,7 +187,7 @@ class NetworkXPlotter(object):
                 margin={"b": 40, "l": 40, "r": 40, "t": 40},
                 xaxis={"showgrid": False, "zeroline": False, "showticklabels": False, },
                 yaxis={"showgrid": False, "zeroline": False, "showticklabels": False, },
-                height=600,
+                autosize=True,
                 paper_bgcolor=paper_bgcolor,
                 plot_bgcolor=plot_bgcolor,
                 annotations=[
@@ -227,12 +227,11 @@ class NetworkXPlotter(object):
                 ],
             ),
         )
-        if True:
-            self.html = "<html><body>"
-            self.html += plotly.offline.plot(
-                fig, output_type="div", include_plotlyjs="cdn",
-            )
-            self.html += "</body></html>"
+        self.html = "<html><body>"
+        self.html += plotly.offline.plot(
+            fig, output_type="div", include_plotlyjs="cdn",
+        )
+        self.html += "</body></html>"
 
-        fig.show()
+        #fig.show()
         return self

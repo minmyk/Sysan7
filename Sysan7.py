@@ -1,14 +1,28 @@
+import string
 import numpy as np
 import pandas as pd
 from functools import reduce
 from copy import copy
-from PyQt5.QtWidgets import QTableWidget, QLabel, QApplication, QLineEdit, QDialog, QGroupBox, \
-    QHBoxLayout, QGridLayout, QStyleFactory, QCheckBox, QPushButton, QWidget, QTableWidgetItem, QTabWidget, \
-    QHeaderView, QTextEdit
+from networkplotter import NetworkXPlotter
+from PyQt5.QtWidgets import QLabel, QApplication, QLineEdit, QDialog, QGroupBox, \
+    QHBoxLayout, QGridLayout, QStyleFactory, QCheckBox, QPushButton, QWidget, QTabWidget, \
+    QHeaderView, QTextEdit, QTextBrowser, QMainWindow
 from PyQt5.QtGui import QPalette, QColor, QIcon
 from PyQt5.QtWebEngineWidgets import QWebEngineView
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QUrl, QEventLoop
 import sys
+import plotly.offline as po
+import plotly.graph_objs as go
+
+
+def show_qt(raw_html):
+    fig_view = QWebEngineView()
+    # setHtml has a 2MB size limit, need to switch to setUrl on tmp file
+    # for large figures.
+    fig_view.setHtml(raw_html)
+    fig_view.show()
+    fig_view.raise_()
+    return fig_view
 
 
 class Node(object):
@@ -223,8 +237,8 @@ class Graph(object):
 
 
 class UI(QDialog):
-    def __init__(self, parent=None):
-        super(UI, self).__init__(parent)
+    def __init__(self):
+        super(UI, self).__init__()
 
         def create_middle_box():
             self.middleBox = QTabWidget()
@@ -263,9 +277,57 @@ class UI(QDialog):
             self.middleBox.setLayout(layout)
 
         def create_graph_box():
+            '''
             # self.graph = QWebEngineView()
             self.graph = QTableWidget()
-            pass
+            self.test = QTextBrowser()
+            f = open('backend/graph.html', 'r')
+            html = f.read()
+            print(html)
+            self.test.setSource(QUrl('backend/test.html'))
+            self.plot_widget = QWebEngineView()
+            #self.plot_widget.setHtml()
+
+            #self.plot_widget = QWebEngineView()
+            #self.plot_widget.setHtml(netplot.html)
+            #print(netplot.html)
+            #self.plot_widget.setHtml('backend/test.html')
+            '''
+            likelyhood = 0.06
+            nods = [
+                Node(letter, number)
+                for letter, number in zip(
+                    string.ascii_lowercase, range(len(string.ascii_lowercase) - 10)
+                )
+            ]
+            for nod in nods:
+                nod.set_connections(
+                    [
+                        [rand, x]
+                        for rand, x in zip(np.random.uniform(0, 1, len(nods)), nods)
+                        if np.random.binomial(1, likelyhood)
+                    ]
+                )
+
+            example_network = Graph("Example")
+            example_network.set_nodes(nods)
+            example_network.form_connection_matrix()
+
+            netplot = NetworkXPlotter(example_network, layout="spectral")
+            netplot.plot(
+                colorscale="sunset",
+                edge_opacity=0.6,
+                edge_color="SlateGrey",
+                node_opacity=1,
+                node_size=12,
+                edge_scale=3,
+                title="Cognitive network visualization<br>"
+                      "(wider edges have higher weights, bigger nodes have self edge)",
+                fontsize=12,
+                plot_text=True,
+            )
+            self.plot_widget = show_qt(netplot.html)
+            self.plot_widget.setFixedHeight(500)
 
         def create_bottom_box():
             self.bottomBox = QTabWidget()
@@ -307,10 +369,10 @@ class UI(QDialog):
         self.mainLayout = QGridLayout()
         self.mainLayout.addLayout(self.topBox, 0, 0, 1, 7)
         self.mainLayout.addWidget(self.middleBox, 1, 5, 4, 2)
-        self.mainLayout.addWidget(self.graph, 1, 0, 4, 5)
+        self.mainLayout.addWidget(self.plot_widget, 1, 0, 4, 5)
         self.mainLayout.addWidget(self.bottomBox, 6, 0, 2, 7)
         self.setLayout(self.mainLayout)
-        self.resize(1000, 700)
+        self.resize(1100, 700)
         self.change_palette()
 
     def change_palette(self):
