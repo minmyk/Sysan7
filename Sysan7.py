@@ -1,26 +1,19 @@
-import string
 import numpy as np
 import pandas as pd
 from functools import reduce
 from copy import copy
-from networkplotter import NetworkXPlotter
-from PyQt5.QtWidgets import QLabel, QApplication, QLineEdit, QDialog, QGroupBox, \
-    QHBoxLayout, QGridLayout, QStyleFactory, QCheckBox, QPushButton, QWidget, QTabWidget, \
-    QHeaderView, QTextEdit, QTextBrowser, QMainWindow
+from PyQt5.QtWidgets import QApplication, QLineEdit, QDialog, \
+    QHBoxLayout, QGridLayout, QStyleFactory, QCheckBox, QPushButton, QTabWidget, QTextEdit
 from PyQt5.QtGui import QPalette, QColor, QIcon
 from PyQt5.QtWebEngineWidgets import QWebEngineView
-from PyQt5.QtCore import Qt, QUrl, QEventLoop
+from PyQt5.QtCore import Qt
 import sys
-import plotly.offline as po
-import plotly.graph_objs as go
 
 
 def show_qt(raw_html):
     fig_view = QWebEngineView()
-    # setHtml has a 2MB size limit, need to switch to setUrl on tmp file
-    # for large figures.
     fig_view.setHtml(raw_html)
-    fig_view.show()
+    # fig_view.show()
     fig_view.raise_()
     return fig_view
 
@@ -159,7 +152,6 @@ class Graph(object):
             for j in range(len(self.nodes)):
                 self.A[i, j] = self.nodes[i].connections[self.nodes[j]] \
                     if self.nodes[j] in connection_nodes else 0
-
         return self.A
 
     def update_values(self, nodes_values):
@@ -175,8 +167,6 @@ class Graph(object):
             previous = current
             current = new
             self.update_values(nodes_values)
-
-        print(current)
 
     def search_cycles(self, verbose=False):
         cycles = set()
@@ -228,7 +218,6 @@ class Graph(object):
         return np.linalg.eig(self.A)[0]
 
     def stability(self):
-        print(self.get_eigens())
         max_eigen = max(abs(self.get_eigens()))
         if max_eigen < 1:
             return True
@@ -240,140 +229,121 @@ class UI(QDialog):
     def __init__(self):
         super(UI, self).__init__()
 
-        def create_middle_box():
-            self.middleBox = QTabWidget()
+        # top_box
+        self.top_box = QHBoxLayout()
 
-            self.addVertex = QPushButton("Add vertex")
-
-            self.addVertex_value = QLineEdit()
-            self.addVertex_value.setPlaceholderText("Name new vertex")
-
-            self.removeVertex = QPushButton("Remove vertex")
-
-            self.removeVertex_value = QLineEdit()
-            self.removeVertex_value.setPlaceholderText("Name vertex to remove")
-
-            self.addConnection = QPushButton("Add connection")
-
-            self.addConnection_value = QLineEdit()
-            self.addConnection_value.setPlaceholderText("Name vertexes to connect")
-
-            self.removeConnection = QPushButton("Remove connection")
-
-            self.removeConnection_value = QLineEdit()
-            self.removeConnection_value.setPlaceholderText("Name vertexes to disconnect")
-
-            layout = QGridLayout()
-
-            layout.addWidget(self.addVertex_value, 0, 0)
-            layout.addWidget(self.addVertex, 1, 0)
-            layout.addWidget(self.addConnection_value, 2, 0)
-            layout.addWidget(self.addConnection, 3, 0)
-            layout.addWidget(self.removeVertex_value, 4, 0)
-            layout.addWidget(self.removeVertex, 5, 0)
-            layout.addWidget(self.removeConnection_value, 6, 0)
-            layout.addWidget(self.removeConnection, 7, 0)
-
-            self.middleBox.setLayout(layout)
-
-        def create_graph_box():
-            '''
-            # self.graph = QWebEngineView()
-            self.graph = QTableWidget()
-            self.test = QTextBrowser()
-            f = open('backend/graph.html', 'r')
-            html = f.read()
-            print(html)
-            self.test.setSource(QUrl('backend/test.html'))
-            self.plot_widget = QWebEngineView()
-            #self.plot_widget.setHtml()
-
-            #self.plot_widget = QWebEngineView()
-            #self.plot_widget.setHtml(netplot.html)
-            #print(netplot.html)
-            #self.plot_widget.setHtml('backend/test.html')
-            '''
-            likelyhood = 0.06
-            nods = [
-                Node(letter, number)
-                for letter, number in zip(
-                    string.ascii_lowercase, range(len(string.ascii_lowercase) - 10)
-                )
-            ]
-            for nod in nods:
-                nod.set_connections(
-                    [
-                        [rand, x]
-                        for rand, x in zip(np.random.uniform(0, 1, len(nods)), nods)
-                        if np.random.binomial(1, likelyhood)
-                    ]
-                )
-
-            example_network = Graph("Example")
-            example_network.set_nodes(nods)
-            example_network.form_connection_matrix()
-
-            netplot = NetworkXPlotter(example_network, layout="spectral")
-            netplot.plot(
-                colorscale="sunset",
-                edge_opacity=0.6,
-                edge_color="SlateGrey",
-                node_opacity=1,
-                node_size=12,
-                edge_scale=3,
-                title="Cognitive network visualization<br>"
-                      "(wider edges have higher weights, bigger nodes have self edge)",
-                fontsize=12,
-                plot_text=True,
-            )
-            self.plot_widget = show_qt(netplot.html)
-            self.plot_widget.setFixedHeight(500)
-
-        def create_bottom_box():
-            self.bottomBox = QTabWidget()
-            self.structural_stability = QPushButton("Check structural stability")
-
-            self.structural_stability_value = QTextEdit()
-            self.structural_stability_value.setPlaceholderText("Here will be displayed the list of cycles")
-
-            self.numerical_stability = QPushButton("Check numerical stability")
-
-            self.numerical_stability_value = QLineEdit()
-            self.numerical_stability_value.setPlaceholderText("Here will be displayed if "
-                                                              "the graph is numerically stable or not")
-            layout = QGridLayout()
-
-            layout.addWidget(self.structural_stability, 0, 0)
-            layout.addWidget(self.structural_stability_value, 0, 1)
-            layout.addWidget(self.numerical_stability, 1, 0)
-            layout.addWidget(self.numerical_stability_value, 1, 1)
-
-            self.bottomBox.setLayout(layout)
-
-        create_middle_box()
-        create_graph_box()
-        create_bottom_box()
+        self.useStylePaletteCheckBox = QCheckBox("Light")
+        self.useStylePaletteCheckBox.setChecked(False)
 
         self.reset = QPushButton("Reset")
-        self.run = QPushButton("Execute")
-        self.useStylePaletteCheckBox = QCheckBox("Light")
-        self.originalPalette = QApplication.palette()
+        self.reset.setFlat(True)
 
-        self.topBox = QHBoxLayout()
+        self.run = QPushButton("Execute")
+        self.run.setFlat(True)
+
+        self.top_box.addWidget(self.useStylePaletteCheckBox)
+        self.top_box.addStretch(1)
+        self.top_box.addWidget(self.run)
+        self.top_box.addWidget(self.reset)
+
+        # middle_box
+        self.middle_box = QTabWidget()
+
+        self.addVertex = QPushButton("Add vertex")
+        self.addVertex.setFlat(True)
+
+        self.addVertex_value = QLineEdit()
+        self.addVertex_value.setPlaceholderText("Name new vertex")
+
+        self.removeVertex = QPushButton("Remove vertex")
+        self.removeVertex.setFlat(True)
+
+        self.removeVertex_value = QLineEdit()
+        self.removeVertex_value.setPlaceholderText("Name vertex to remove")
+
+        self.addConnection = QPushButton("Add connection")
+        self.addConnection.setFlat(True)
+
+        self.addConnection_value = QLineEdit()
+        self.addConnection_value.setPlaceholderText("Name vertexes to connect")
+
+        self.removeConnection = QPushButton("Remove connection")
+        self.removeConnection.setFlat(True)
+
+        self.removeConnection_value = QLineEdit()
+        self.removeConnection_value.setPlaceholderText("Name vertexes to disconnect")
+
+        layout = QGridLayout()
+
+        layout.addWidget(self.addVertex_value, 0, 0)
+        layout.addWidget(self.addVertex, 1, 0)
+        layout.addWidget(self.addConnection_value, 2, 0)
+        layout.addWidget(self.addConnection, 3, 0)
+        layout.addWidget(self.removeVertex_value, 4, 0)
+        layout.addWidget(self.removeVertex, 5, 0)
+        layout.addWidget(self.removeConnection_value, 6, 0)
+        layout.addWidget(self.removeConnection, 7, 0)
+
+        self.middle_box.setLayout(layout)
+
+        # graph_box
+        self.plot_widget = QWebEngineView()
+        self.plot_widget.setHtml("<!DOCTYPE html><html><body style='background-color:grey;'></body></html>")
+        self.plot_widget.setFixedHeight(500)
+
+        # bottom_box
+        self.bottom_box = QTabWidget()
+        self.structural_stability = QPushButton("Check structural stability")
+        self.structural_stability.setFlat(True)
+
+        self.structural_stability_value = QTextEdit()
+        self.structural_stability_value.setPlaceholderText("Here will be displayed the list of cycles")
+
+        self.numerical_stability = QPushButton("Check numerical stability")
+        self.numerical_stability.setFlat(True)
+
+        self.numerical_stability_value = QLineEdit()
+        self.numerical_stability_value.setPlaceholderText("Here will be displayed if "
+                                                          "the graph is numerically stable or not")
+        layout = QGridLayout()
+
+        layout.addWidget(self.structural_stability, 0, 0)
+        layout.addWidget(self.structural_stability_value, 0, 1)
+        layout.addWidget(self.numerical_stability, 1, 0)
+        layout.addWidget(self.numerical_stability_value, 1, 1)
+
+        self.bottom_box.setLayout(layout)
+
+        # widow_init
         self.setWindowIcon(QIcon('icon.jpg'))
         self.setWindowTitle("Solver")
         self.setWindowIconText('Solver')
 
-        self.create_top_box()
-
         self.mainLayout = QGridLayout()
-        self.mainLayout.addLayout(self.topBox, 0, 0, 1, 7)
-        self.mainLayout.addWidget(self.middleBox, 1, 5, 4, 2)
+        self.mainLayout.addLayout(self.top_box, 0, 0, 1, 7)
+        self.mainLayout.addWidget(self.middle_box, 1, 5, 4, 2)
         self.mainLayout.addWidget(self.plot_widget, 1, 0, 4, 5)
-        self.mainLayout.addWidget(self.bottomBox, 6, 0, 2, 7)
+        self.mainLayout.addWidget(self.bottom_box, 6, 0, 2, 7)
+
         self.setLayout(self.mainLayout)
+
         self.resize(1100, 700)
+        self.originalPalette = QApplication.palette()
         self.change_palette()
+
+        # set_connections
+        self.useStylePaletteCheckBox.toggled.connect(self.change_palette)
+        self.reset.clicked.connect(self.clr)
+        self.run.clicked.connect(self.execute)
+        self.addVertex.clicked.connect(self.add_vertex)
+        self.removeVertex.clicked.connect(self.remove_vertex)
+        self.addConnection.clicked.connect(self.add_connection)
+        self.removeConnection.clicked.connect(self.remove_connection)
+        self.structural_stability.clicked.connect(self.check_structural_stability)
+        self.numerical_stability.clicked.connect(self.check_numerical_stability)
+
+        # graph_init
+        self.graph = Graph("Graph")
 
     def change_palette(self):
         dark_palette = QPalette()
@@ -402,18 +372,50 @@ class UI(QDialog):
         dark_palette.setColor(QPalette.Disabled, QPalette.HighlightedText, QColor(127, 127, 127))
 
         if self.useStylePaletteCheckBox.isChecked():
+            self.plot_graph("<!DOCTYPE html><html><body style='background-color:white;'></body></html>")
             QApplication.setPalette(QApplication.style().standardPalette())
+
         else:
+            self.plot_graph("<!DOCTYPE html><html><body style='background-color:grey;'></body></html>")
             QApplication.setPalette(dark_palette)
 
-    def create_top_box(self):
-        self.useStylePaletteCheckBox.setChecked(False)
-        self.reset.setFlat(True)
-        self.run.setFlat(True)
-        self.topBox.addWidget(self.useStylePaletteCheckBox)
-        self.topBox.addStretch(1)
-        self.topBox.addWidget(self.run)
-        self.topBox.addWidget(self.reset)
+    def plot_graph(self, html):
+        self.plot_widget = show_qt(html)
+        self.mainLayout.addWidget(self.plot_widget, 1, 0, 4, 5)
+        self.plot_widget.setFixedHeight(500)
+
+    def add_vertex(self):
+        params = self.addVertex_value.text().split()
+        if len(params) != 2:
+            self.addVertex_value.clear()
+        else:
+            self.graph.add_node(Node(*params))
+            self.addVertex_value.clear()
+
+    def add_connection(self):
+        pass
+
+    def remove_vertex(self):
+        params = self.removeVertex_value.text().split()
+        if len(params) != 2:
+            self.removeVertex_value.clear()
+        else:
+            self.graph.remove_node(Node(*params))
+            self.removeVertex_value.clear()
+
+    def remove_connection(self):
+        params = self.removeConnection_value.text().split()
+        if len(params) != 2:
+            self.removeConnection_value.clear()
+        else:
+            # self.graph.nodesremoveConnection_value(Node(*params))
+            self.removeConnection_value.clear()
+
+    def check_structural_stability(self):
+        pass
+
+    def check_numerical_stability(self):
+        pass
 
     def clr(self):
         pass
@@ -426,7 +428,4 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     main_window = UI()
     main_window.show()
-    main_window.useStylePaletteCheckBox.toggled.connect(main_window.change_palette)
-    main_window.reset.clicked.connect(main_window.clr)
-    main_window.run.clicked.connect(main_window.execute)
     app.exec_()

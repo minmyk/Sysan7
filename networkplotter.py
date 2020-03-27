@@ -63,7 +63,7 @@ class NetworkXPlotter(object):
         paper_bgcolor=None,
         plot_bgcolor=None,
         plot_text=False,
-        text_color = None
+        text_color=None
     ):
         """
         Args:edge_opacity
@@ -156,8 +156,8 @@ class NetworkXPlotter(object):
                     title="Node Connections",
                     xanchor="left",
                     titleside="right",
-                    titlefont=dict(size=fontsize, color = text_color),
-                    tickfont=dict(size=fontsize, color = text_color),
+                    titlefont=dict(size=fontsize, color=text_color),
+                    tickfont=dict(size=fontsize, color=text_color),
                 ),
             ),
             textfont=dict(
@@ -190,7 +190,7 @@ class NetworkXPlotter(object):
                 title=title,
                 showlegend=False,
                 hovermode="closest",
-                titlefont=dict(size=fontsize, color = text_color),
+                titlefont=dict(size=fontsize, color=text_color),
                 margin={"b": 40, "l": 40, "r": 40, "t": 40},
                 xaxis={"showgrid": False, "zeroline": False, "showticklabels": False, },
                 yaxis={"showgrid": False, "zeroline": False, "showticklabels": False, },
@@ -239,6 +239,4 @@ class NetworkXPlotter(object):
             fig, output_type="div", include_plotlyjs="cdn",
         )
         self.html += "</body></html>"
-
-        #fig.show()
         return self
