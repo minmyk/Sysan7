@@ -1,11 +1,12 @@
 import numpy as np
+import pandas as pd
 from functools import reduce
-from itertools import product
-from networkplotter import NetworkXPlotter
+from copy import copy
 from PyQt5.QtWidgets import QTableWidget, QLabel, QApplication, QLineEdit, QDialog, QGroupBox, \
     QHBoxLayout, QGridLayout, QStyleFactory, QCheckBox, QPushButton, QWidget, QTableWidgetItem, QTabWidget, \
-    QHeaderView
+    QHeaderView, QTextEdit
 from PyQt5.QtGui import QPalette, QColor, QIcon
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import Qt
 import sys
 
@@ -36,6 +37,25 @@ class Node(object):
         return self.name
 
 
+def form_sw_table(swot, t_count):
+    sw = swot.index
+    sw_table = np.zeros((len(sw), len(sw)))
+
+    for i in range(len(sw) - 1):
+        for j in range(i + 1, len(sw)):
+            weight = 0
+            for k in range(len(swot.iloc[i])):
+                weight = weight - min(swot.iloc[i][k], swot.iloc[j][k]) if k < t_count \
+                    else weight + min(swot.iloc[i][k], swot.iloc[j][k])
+
+            sw_table[i, j] = round(weight, 5)
+
+    sw_table = sw_table + sw_table.T
+    print(sw_table[0, :])
+    sw = pd.DataFrame({swot.index[i]: sw_table[:, i] for i in range(sw_table.shape[1])}, index=swot.index)
+    return sw
+
+
 def form_subgraphs(clusters):
     clusters_keys = list(clusters.keys())
     clusters_values = list(clusters.values())
@@ -53,8 +73,9 @@ def form_subgraphs(clusters):
             weight = 0
             for node_left in clusters_values[i]:
                 for node_right in node_left.connections.keys():
-                    additive = node_left.connections[node_right] if node_right in clusters_values[j] \
-                                                                    and not node_right in clusters_values[i] else 0
+                    additive = node_left.connections[node_right] \
+                        if node_right in clusters_values[j] \
+                        and node_right not in clusters_values[i] else 0
                     weight += additive
             connections.append([weight, subgraphs[j]])
 
@@ -70,6 +91,36 @@ class Graph(object):
         self.name = name
         self.nodes = []
         self.A = []
+
+    def from_pandas(self, swot, sw, s_count):
+        nodes = dict()
+
+        for index in swot.index:
+            value = 0
+            row = swot.loc[index]
+            for i in range(len(row)):
+                value = value + row[i]
+            nodes[index] = Node(index, value)
+
+        for column in swot.columns:
+            value = 0
+            col = swot[column]
+            for i in range(len(col)):
+                value = value + col[i] if i < s_count else value - col[i]
+            nodes[column] = Node(column, value)
+
+        for index in swot.index:
+            for column in swot.columns:
+                if swot.loc[index][column] != 0:
+                    nodes[index].set_weight([swot.loc[index][column], nodes[column]])
+                    nodes[column].set_weight([swot.loc[index][column], nodes[index]])
+
+        for index in sw.index:
+            for column in sw.columns:
+                nodes[index].set_weight([sw.loc[index][column], nodes[column]]) \
+                    if sw.loc[index][column] != 0 else 0
+
+        self.set_nodes(list(nodes.values()))
 
     def set_nodes(self, nodes):
         self.nodes = nodes
@@ -94,6 +145,7 @@ class Graph(object):
             for j in range(len(self.nodes)):
                 self.A[i, j] = self.nodes[i].connections[self.nodes[j]] \
                     if self.nodes[j] in connection_nodes else 0
+
         return self.A
 
     def update_values(self, nodes_values):
@@ -109,24 +161,23 @@ class Graph(object):
             previous = current
             current = new
             self.update_values(nodes_values)
+
         print(current)
 
-    def search_cycles(self):
+    def search_cycles(self, verbose=False):
         cycles = set()
         for node in self.nodes:
-            print(self.nodes.index(node))
             layer = 0
             vertexes = dict()
             vertexes[layer] = {node}
-            while layer < len(self.nodes):
+            while True:
                 nexts = set()
                 previous_layers = reduce(lambda x, y: x.union(y), list(vertexes.values())[: layer]) if layer > 0 else []
                 for vertex in vertexes[layer]:
                     if vertex not in previous_layers:
                         for next_vertex in vertex.connections.keys():
                             nexts.add(next_vertex)
-                    else:
-                        nexts.add(vertex)
+
                 layer += 1
                 if nexts != set():
                     vertexes[layer] = nexts
@@ -135,55 +186,131 @@ class Graph(object):
 
             for length in range(1, len(vertexes)):
                 if node in vertexes[length]:
-                    additive = list(product(*[vertexes[i] for i in range(0, length)]))
-                    for cycle in additive:
-                        cycles.add(tuple(set(cycle)))
+                    chains = np.array([[0., node]])
+                    for layers in reversed(range(length)):
+                        chain = copy(chains)
+                        for nodes in vertexes[layers]:
+                            for i in range(len(chain[:, -1])):
+                                if chain[i][-1] in nodes.connections.keys():
+                                    new_chain = np.append(chain[i], nodes)
+                                    new_chain[0] = chains[i][0] + nodes.connections[chain[i][-1]]
 
-        for cycle in cycles:
-            print(list(map(lambda val: str(val), cycle)))
-            print("----------")
+                                    if len(chain[0]) == len(chains[0]):
+                                        chains = np.hstack((chains, [[0]] * chains.shape[0]))
+                                    chains = np.vstack((chains, new_chain))
+                    for arr in chains:
+                        temp = arr[1:][arr[1:] != 0]
+                        if temp[0] == temp[-1] and len(temp) > 1:
+                            cycles.add((arr[0], tuple(temp)))
+                    break
+        if verbose:
+            for cycle in cycles:
+                if cycle[0] > 0:
+                    print('\nWeight = ', cycle[0])
+                    print(list(map(lambda val: str(val), cycle[1])))
+        return cycles
+
+    def get_eigens(self):
+        return np.linalg.eig(self.A)[0]
+
+    def stability(self):
+        print(self.get_eigens())
+        max_eigen = max(abs(self.get_eigens()))
+        if max_eigen < 1:
+            return True
+        else:
+            return False
 
 
 class UI(QDialog):
     def __init__(self, parent=None):
         super(UI, self).__init__(parent)
 
+        def create_middle_box():
+            self.middleBox = QTabWidget()
+
+            self.addVertex = QPushButton("Add vertex")
+
+            self.addVertex_value = QLineEdit()
+            self.addVertex_value.setPlaceholderText("Name new vertex")
+
+            self.removeVertex = QPushButton("Remove vertex")
+
+            self.removeVertex_value = QLineEdit()
+            self.removeVertex_value.setPlaceholderText("Name vertex to remove")
+
+            self.addConnection = QPushButton("Add connection")
+
+            self.addConnection_value = QLineEdit()
+            self.addConnection_value.setPlaceholderText("Name vertexes to connect")
+
+            self.removeConnection = QPushButton("Remove connection")
+
+            self.removeConnection_value = QLineEdit()
+            self.removeConnection_value.setPlaceholderText("Name vertexes to disconnect")
+
+            layout = QGridLayout()
+
+            layout.addWidget(self.addVertex, 0, 0)
+            layout.addWidget(self.addVertex_value, 1, 0)
+            layout.addWidget(self.addConnection, 2, 0)
+            layout.addWidget(self.addConnection_value, 3, 0)
+            layout.addWidget(self.removeVertex, 4, 0)
+            layout.addWidget(self.removeVertex_value, 5, 0)
+            layout.addWidget(self.removeConnection, 6, 0)
+            layout.addWidget(self.removeConnection_value, 7, 0)
+
+            self.middleBox.setLayout(layout)
+
+        def create_graph_box():
+            # self.graph = QWebEngineView()
+            self.graph = QTableWidget()
+            pass
+
+        def create_bottom_box():
+            self.bottomBox = QTabWidget()
+            self.structural_stability = QPushButton("Check structural stability")
+
+            self.structural_stability_value = QTextEdit()
+            self.structural_stability_value.setPlaceholderText("Here will be displayed the list of cycles")
+
+            self.numerical_stability = QPushButton("Check numerical stability")
+
+            self.numerical_stability_value = QLineEdit()
+            self.numerical_stability_value.setPlaceholderText("Here will be displayed if "
+                                                              "the graph is numerically stable or not")
+            layout = QGridLayout()
+
+            layout.addWidget(self.structural_stability, 0, 0)
+            layout.addWidget(self.structural_stability_value, 0, 1)
+            layout.addWidget(self.numerical_stability, 1, 0)
+            layout.addWidget(self.numerical_stability_value, 1, 1)
+
+            self.bottomBox.setLayout(layout)
+
+        create_middle_box()
+        create_graph_box()
+        create_bottom_box()
+
         self.reset = QPushButton("Reset")
         self.run = QPushButton("Execute")
         self.useStylePaletteCheckBox = QCheckBox("Light")
-        self.tab1hbox = QHBoxLayout()
-        self.tab2hbox = QHBoxLayout()
-        self.Btab1 = QWidget()
-        self.Btab2 = QWidget()
-        self.tables = [QTableWidget(self.Btab1), QTableWidget(self.Btab1),
-                       QTableWidget(self.Btab2), QTableWidget(self.Btab2)]
-
-        self.bottomBox = QTabWidget()
-
-        self.Mlabel2 = QLabel("Optimal weights TOPSIS:")
-        self.Mlabel1 = QLabel("Optimal weights VITOR:")
-        self.MspinBox2 = QLineEdit("")
-        self.MspinBox1 = QLineEdit("")
-        self.middleBox = QGroupBox("Optimal strategies")
-
-        self.outputs = []
-        self.results = QLabel()
         self.originalPalette = QApplication.palette()
+
         self.topBox = QHBoxLayout()
         self.setWindowIcon(QIcon('icon.jpg'))
-        self.setWindowTitle("SWOT")
-        self.setWindowIconText('SWOT')
+        self.setWindowTitle("Solver")
+        self.setWindowIconText('Solver')
 
         self.create_top_box()
-        self.create_bottom_box()
-        self.create_middle_box()
 
         self.mainLayout = QGridLayout()
-        self.mainLayout.addLayout(self.topBox, 0, 0)
-        self.mainLayout.addWidget(self.middleBox, 1, 0)
-        self.mainLayout.addWidget(self.bottomBox, 2, 0)
+        self.mainLayout.addLayout(self.topBox, 0, 0, 1, 7)
+        self.mainLayout.addWidget(self.middleBox, 1, 5, 4, 2)
+        self.mainLayout.addWidget(self.graph, 1, 0, 4, 5)
+        self.mainLayout.addWidget(self.bottomBox, 6, 0, 2, 7)
         self.setLayout(self.mainLayout)
-        self.resize(800, 600)
+        self.resize(1000, 700)
         self.change_palette()
 
     def change_palette(self):
@@ -226,65 +353,8 @@ class UI(QDialog):
         self.topBox.addWidget(self.run)
         self.topBox.addWidget(self.reset)
 
-    def create_bottom_box(self):
-        for index in range(len(self.tables)):
-            self.tables[index].setColumnCount(2)
-            if index in (0, 1):
-                self.tables[index].setRowCount(12)
-            else:
-                self.tables[index].setRowCount(10)
-            header = self.tables[index].horizontalHeader()
-            header.setSectionResizeMode(0, QHeaderView.Stretch)
-            header.setSectionResizeMode(1, QHeaderView.Stretch)
-
-        self.tables[0].setHorizontalHeaderLabels(["Strength level", "F"])
-        self.tables[1].setHorizontalHeaderLabels(["Weakness level", "F"])
-        self.tables[2].setHorizontalHeaderLabels(["Opportunities level", "F"])
-        self.tables[3].setHorizontalHeaderLabels(["Threats level", "F"])
-
-        self.tab1hbox.setContentsMargins(5, 5, 5, 5)
-        self.tab1hbox.addWidget(self.tables[0])
-        self.tab1hbox.addWidget(self.tables[1])
-        self.Btab1.setLayout(self.tab1hbox)
-
-        self.tab2hbox.setContentsMargins(5, 5, 5, 5)
-        self.tab2hbox.addWidget(self.tables[2])
-        self.tab2hbox.addWidget(self.tables[3])
-        self.Btab2.setLayout(self.tab2hbox)
-
-        self.bottomBox.addTab(self.Btab1, "Strengths / Weaknesses")
-        self.bottomBox.addTab(self.Btab2, "Opportunities / Threats")
-
-    def create_middle_box(self):
-        self.outputs.append(self.MspinBox1)
-        self.outputs.append(self.MspinBox2)
-
-        layout = QGridLayout()
-        self.MspinBox1.setPlaceholderText("Here will be displayed optimal VITOR strategy "
-                                          "after calculations are finished.")
-        self.MspinBox2.setPlaceholderText("Here will be displayed optimal TOPSIS strategy "
-                                          "after calculations are finished.")
-        layout.addWidget(self.MspinBox1, 0, 1, 1, 4)
-        layout.addWidget(self.MspinBox2, 1, 1, 1, 4)
-        layout.addWidget(self.Mlabel1, 0, 0, 1, 1)
-        layout.addWidget(self.Mlabel2, 1, 0)
-
-        self.middleBox.setLayout(layout)
-
     def clr(self):
-        self.MspinBox1.setText("")
-        self.MspinBox2.setText("")
-        for table in self.tables:
-            table.clearContents()
-
-    def fill_table(self, table_index, table_to_fill):
-        for index in range(len(table_to_fill.to_numpy())):
-            item1 = QTableWidgetItem(list(table_to_fill.index)[index])
-            item1.setTextAlignment(Qt.AlignHCenter)
-            self.tables[table_index].setItem(index, 0, item1)
-            item2 = QTableWidgetItem(str(np.round(table_to_fill.to_numpy(), 3)[index]))
-            item2.setTextAlignment(Qt.AlignHCenter)
-            self.tables[table_index].setItem(index, 1, item2)
+        pass
 
     def execute(self):
         self.clr()
@@ -298,6 +368,3 @@ if __name__ == '__main__':
     main_window.reset.clicked.connect(main_window.clr)
     main_window.run.clicked.connect(main_window.execute)
     app.exec_()
-
-
-

@@ -51,7 +51,6 @@ class NetworkXPlotter(object):
 
     def plot(
         self,
-        save_html=False,
         colorscale="Inferno",
         reversescale=False,
         edge_opacity=0.5,
@@ -228,7 +227,7 @@ class NetworkXPlotter(object):
                 ],
             ),
         )
-        if save_html:
+        if True:
             self.html = "<html><body>"
             self.html += plotly.offline.plot(
                 fig, output_type="div", include_plotlyjs="cdn",
