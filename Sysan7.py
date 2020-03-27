@@ -251,14 +251,14 @@ class UI(QDialog):
 
             layout = QGridLayout()
 
-            layout.addWidget(self.addVertex, 0, 0)
-            layout.addWidget(self.addVertex_value, 1, 0)
-            layout.addWidget(self.addConnection, 2, 0)
-            layout.addWidget(self.addConnection_value, 3, 0)
-            layout.addWidget(self.removeVertex, 4, 0)
-            layout.addWidget(self.removeVertex_value, 5, 0)
-            layout.addWidget(self.removeConnection, 6, 0)
-            layout.addWidget(self.removeConnection_value, 7, 0)
+            layout.addWidget(self.addVertex_value, 0, 0)
+            layout.addWidget(self.addVertex, 1, 0)
+            layout.addWidget(self.addConnection_value, 2, 0)
+            layout.addWidget(self.addConnection, 3, 0)
+            layout.addWidget(self.removeVertex_value, 4, 0)
+            layout.addWidget(self.removeVertex, 5, 0)
+            layout.addWidget(self.removeConnection_value, 6, 0)
+            layout.addWidget(self.removeConnection, 7, 0)
 
             self.middleBox.setLayout(layout)
 
