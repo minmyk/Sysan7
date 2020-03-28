@@ -3,6 +3,7 @@ import pandas as pd
 from functools import reduce
 from copy import copy
 from networkplotter import NetworkXPlotter
+from backend.create_swot_table import Swot
 from PyQt5.QtWidgets import QApplication, QLineEdit, QDialog, \
     QHBoxLayout, QGridLayout, QStyleFactory, QCheckBox, QPushButton, QTabWidget, QTextEdit
 from PyQt5.QtGui import QPalette, QColor, QIcon
@@ -28,6 +29,12 @@ class Node(object):
 
     def set_connections(self, connections):
         for connection in connections:
+            print('\nConnections\n')
+            if np.random.binomial(1, 0.5):
+                print('povezlo')
+                print(self.name, str(connections[0][1]))
+            else:
+                print('ne povezlo(((')
             self.connections[connection[1]] = connection[0]
 
     def set_weight(self, connection):
@@ -252,11 +259,15 @@ class UI(QDialog):
         self.reset_graph_button = QPushButton("Reset graph")
         self.reset_graph_button.setFlat(True)
 
+        self.show_swot_button = QPushButton("Show SWOT graph")
+        self.show_swot_button.setFlat(True)
+
         self.generate_random_graph_button = QPushButton("Generate random graph")
         self.generate_random_graph_button.setFlat(True)
 
         self.top_box.addWidget(self.switch_color_mode_button)
         self.top_box.addStretch(1)
+        self.top_box.addWidget(self.show_swot_button)
         self.top_box.addWidget(self.generate_random_graph_button)
         self.top_box.addWidget(self.reset_graph_button)
 
@@ -359,6 +370,7 @@ class UI(QDialog):
         self.remove_connection_button.clicked.connect(self.remove_connection)
         self.check_structural_stability_button.clicked.connect(self.check_structural_stability)
         self.check_numerical_stability_button.clicked.connect(self.check_numerical_stability)
+        self.show_swot_button.clicked.connect(self.show_swot_graph)
 
     def change_palette(self):
         dark_palette = QPalette()
@@ -418,6 +430,7 @@ class UI(QDialog):
             node_from = self.graph.get_node(params[0])
             node_to = self.graph.get_node(params[1])
             weight = float(params[2])
+            print(node_to, node_from, weight)
             node_from.set_connections([[weight, node_to]])
             node_to.set_connections([[weight, node_from]])
             self.addConnection_value.clear()
@@ -470,7 +483,7 @@ class UI(QDialog):
             for letter, number in zip(
                 string.ascii_lowercase, range(len(string.ascii_lowercase) - 10)
             )
-        ][:7]
+        ][:4]
         for nod in nods:
             nod.set_connections(
                 [
@@ -482,6 +495,16 @@ class UI(QDialog):
 
         self.graph = Graph("Graph")
         self.graph.set_nodes(nods)
+        self.graph.form_connection_matrix()
+        self.create_graph_html()
+        self.plot_graph()
+
+    def show_swot_graph(self):
+        swot = Swot()
+        sswat = swot.swot()[0]
+        sw_table = form_sw_table(sswat, 10)
+        self.graph = Graph('SWOT')
+        self.graph.from_pandas(sswat, sw_table, 12)
         self.graph.form_connection_matrix()
         self.create_graph_html()
         self.plot_graph()
