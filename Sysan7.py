@@ -149,6 +149,8 @@ class Graph(object):
     def remove_node(self, node):
         try:
             self.nodes.remove(node)
+            for vertex in self.nodes:
+                vertex.remove_connection(node)
         except ValueError:
             print("no node " + str(node) + " in the graph")
 
@@ -191,13 +193,11 @@ class Graph(object):
                     if vertex not in previous_layers:
                         for next_vertex in vertex.connections.keys():
                             nexts.add(next_vertex)
-
                 layer += 1
                 if nexts != set():
                     vertexes[layer] = nexts
                 else:
                     break
-
             for length in range(1, len(vertexes)):
                 if node in vertexes[length]:
                     chains = np.array([[0., node]])
@@ -228,10 +228,14 @@ class Graph(object):
         return np.linalg.eig(self.A)[0]
 
     def stability(self):
-        max_eigen = max(abs(self.get_eigens()))
-        if max_eigen < 1:
-            return True
-        else:
+        try:
+            max_eigen = max(abs(self.get_eigens()))
+            if max_eigen < 1:
+                return True
+            else:
+                return False
+        except np.linalg.LinAlgError:
+            print("one dimensional array")
             return False
 
 
@@ -324,6 +328,10 @@ class UI(QDialog):
 
         self.bottom_box.setLayout(layout)
 
+        # graph_init
+        self.graph = Graph("Graph")
+        self.netplot = None
+
         # widow_init
         self.setWindowIcon(QIcon('icon.jpg'))
         self.setWindowTitle("Solver")
@@ -352,10 +360,6 @@ class UI(QDialog):
         self.check_structural_stability_button.clicked.connect(self.check_structural_stability)
         self.check_numerical_stability_button.clicked.connect(self.check_numerical_stability)
 
-        # graph_init
-        self.graph = Graph("Graph")
-        self.netplot = None
-
     def change_palette(self):
         dark_palette = QPalette()
 
@@ -383,11 +387,12 @@ class UI(QDialog):
         dark_palette.setColor(QPalette.Disabled, QPalette.HighlightedText, QColor(127, 127, 127))
 
         if self.switch_color_mode_button.isChecked():
-            self.plot_graph("<!DOCTYPE html><html><body style='background-color:white;'></body></html>")
+            if len(self.graph.nodes) == 0:
+                self.plot_graph("<!DOCTYPE html><html><body style='background-color:white;'></body></html>")
             QApplication.setPalette(QApplication.style().standardPalette())
-
         else:
-            self.plot_graph("<!DOCTYPE html><html><body style='background-color:grey;'></body></html>")
+            if len(self.graph.nodes) == 0:
+                self.plot_graph("<!DOCTYPE html><html><body style='background-color:grey;'></body></html>")
             QApplication.setPalette(dark_palette)
 
     def plot_graph(self, html=None):
@@ -430,15 +435,26 @@ class UI(QDialog):
             self.plot_graph()
 
     def remove_connection(self):
-        params = self.removeConnection_value.text().split()
+        params = self.removeConnection_value.text().split()  # params[0] - node1; params[1] - node2;
         if len(params) != 2:
             self.removeConnection_value.clear()
         else:
-            # self.graph.nodesremoveConnection_value(Node(*params))
+            node1 = self.graph.get_node(params[0])
+            node2 = self.graph.get_node(params[1])
+            node1.remove_connection(node2)
+            node2.remove_connection(node1)
             self.removeConnection_value.clear()
+            self.create_graph_html()
+            self.plot_graph()
 
     def check_structural_stability(self):
         cycles = self.graph.search_cycles()
+        cycles = reduce(lambda a, b: a + b, ["Weight: " + str(np.round(np.array(cycle[0]), 2)) +
+                                             "  |  Cycle: " + reduce(
+            lambda x, y: x + y,
+            [str(node) + ' -> ' for node in cycle[1]])[:-4] + '\n'
+                  for cycle in cycles])
+
         self.structural_stability_value.setText(str(cycles))
         pass
 
@@ -454,7 +470,7 @@ class UI(QDialog):
             for letter, number in zip(
                 string.ascii_lowercase, range(len(string.ascii_lowercase) - 10)
             )
-        ]
+        ][:7]
         for nod in nods:
             nod.set_connections(
                 [
