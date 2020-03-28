@@ -1,6 +1,7 @@
 import networkx as nx
 import plotly
 import plotly.graph_objs as go
+import numpy as np
 
 
 class NetworkXPlotter(object):
@@ -20,10 +21,15 @@ class NetworkXPlotter(object):
         self.G = nx.DiGraph()
         edges = []
         weights = []
+        nodes = []
         for node in custom_g.nodes:
+            nodes.append(str(node))
             for k, v in node.connections.items():
-                edges.append((str(node), str(k)))
-                weights.append(v)
+                if v!=0:
+                    edges.append((str(node), str(k)))
+                    weights.append(v)
+                
+        self.G.add_nodes_from(nodes)
         self.G.add_edges_from(edges)
 
         if layout == "spring":
@@ -92,10 +98,17 @@ class NetworkXPlotter(object):
         # 'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis'| 'Inferno'
         # look up for Plotly colorscale in internet for all options
         trace_recode = []
+        
+        weights = []
+        for edge in self.G.edges:
+            weights.append(self.G.edges[edge]['weight'])
+            
+        weights = np.array(weights)/np.max(np.abs(weights))
+        index = 0 
         for edge in self.G.edges:
             x0, y0 = self.G.nodes[edge[0]]["pos"]
             x1, y1 = self.G.nodes[edge[1]]["pos"]
-            weight = edge_scale * self.G.edges[edge]["weight"] + 1
+            weight = edge_scale * abs(weights[index]) + 1
             trace = go.Scatter(
                 x=tuple([x0, x1, None]),
                 y=tuple([y0, y1, None]),
@@ -105,6 +118,7 @@ class NetworkXPlotter(object):
                 opacity=edge_opacity,
             )
             trace_recode.append(trace)
+            index+=1
 
         middle_hover_trace = go.Scatter(
             x=[],
