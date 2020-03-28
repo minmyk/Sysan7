@@ -5,7 +5,7 @@ from copy import copy
 from networkplotter import NetworkXPlotter
 from backend.create_swot_table import Swot
 from PyQt5.QtWidgets import QApplication, QLineEdit, QDialog, \
-    QHBoxLayout, QGridLayout, QStyleFactory, QCheckBox, QPushButton, QTabWidget, QTextEdit
+    QHBoxLayout, QGridLayout, QStyleFactory, QCheckBox, QPushButton, QTabWidget, QTextEdit, QComboBox
 from PyQt5.QtGui import QPalette, QColor, QIcon
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import Qt
@@ -29,12 +29,12 @@ class Node(object):
 
     def set_connections(self, connections):
         for connection in connections:
-            print('\nConnections\n')
+            print("\nConnections\n")
             if np.random.binomial(1, 0.5):
-                print('povezlo')
+                print("povezlo")
                 print(self.name, str(connections[0][1]))
             else:
-                print('ne povezlo(((')
+                print("ne povezlo(((")
             self.connections[connection[1]] = connection[0]
 
     def set_weight(self, connection):
@@ -97,7 +97,7 @@ def form_subgraphs(clusters):
 
         subgraphs[i].set_connections(connections)
 
-    aggregated = Graph('aggregated')
+    aggregated = Graph("aggregated")
     aggregated.set_nodes(subgraphs)
     return aggregated
 
@@ -177,11 +177,12 @@ class Graph(object):
         for node in self.nodes:
             node.set_value(nodes_values[node])
 
-    def send_impulses(self, impulses):
+    def send_impulses(self, impulse, duration, overall_duration_multiplier=4):
         previous = np.zeros((len(self.nodes), 1))
         current = np.array([[node.value] for node in self.nodes])
-        for impulse in impulses:
-            new = current + np.array(self.A).T @ (current - previous) + impulse
+        for i in range(duration * overall_duration_multiplier):
+            impulse = impulse if i < duration else np.zeros((impulse.shape[0], 1))
+            new = current + self.A.T @  (current - previous) + impulse
             nodes_values = {self.nodes[i]: current[i, 0] for i in range(len(self.nodes))}
             previous = current
             current = new
@@ -227,7 +228,7 @@ class Graph(object):
         if verbose:
             for cycle in cycles:
                 if cycle[0] > 0:
-                    print('\nWeight = ', cycle[0])
+                    print("\nWeight = ", cycle[0])
                     print(list(map(lambda val: str(val), cycle[1])))
         return cycles
 
@@ -344,9 +345,9 @@ class UI(QDialog):
         self.netplot = None
 
         # widow_init
-        self.setWindowIcon(QIcon('icon.jpg'))
+        self.setWindowIcon(QIcon("icon.jpg"))
         self.setWindowTitle("Solver")
-        self.setWindowIconText('Solver')
+        self.setWindowIconText("Solver")
 
         self.mainLayout = QGridLayout()
         self.mainLayout.addLayout(self.top_box, 0, 0, 1, 7)
@@ -465,7 +466,7 @@ class UI(QDialog):
         cycles = reduce(lambda a, b: a + b, ["Weight: " + str(np.round(np.array(cycle[0]), 2)) +
                                              "  |  Cycle: " + reduce(
             lambda x, y: x + y,
-            [str(node) + ' -> ' for node in cycle[1]])[:-4] + '\n'
+            [str(node) + " -> " for node in cycle[1]])[:-4] + "\n"
                   for cycle in cycles])
 
         self.structural_stability_value.setText(str(cycles))
@@ -477,13 +478,14 @@ class UI(QDialog):
         pass
 
     def generate_random_graph(self):
-        likelyhood = 0.6
+        likelyhood = 0.4
         nods = [
             Node(letter, number)
             for letter, number in zip(
-                string.ascii_lowercase, range(len(string.ascii_lowercase) - 10)
+                list(map(lambda x: str(x), range(44))), range(44)
             )
         ][:4]
+        print(list(map(lambda x: str(x), range(44))), range(44))
         for nod in nods:
             nod.set_connections(
                 [
@@ -492,10 +494,8 @@ class UI(QDialog):
                     if np.random.binomial(1, likelyhood)
                 ]
             )
-
         self.graph = Graph("Graph")
         self.graph.set_nodes(nods)
-        self.graph.form_connection_matrix()
         self.create_graph_html()
         self.plot_graph()
 
@@ -503,11 +503,14 @@ class UI(QDialog):
         swot = Swot()
         sswat = swot.swot()[0]
         sw_table = form_sw_table(sswat, 10)
-        self.graph = Graph('SWOT')
+        self.graph = Graph("SWOT")
         self.graph.from_pandas(sswat, sw_table, 12)
-        self.graph.form_connection_matrix()
-        self.create_graph_html()
-        self.plot_graph()
+        print(str(self.graph.nodes[0]), self.graph.nodes[0].connections)
+        try:
+            self.create_graph_html()
+            self.plot_graph()
+        except ValueError:
+            print("oops")
 
     def create_graph_html(self):
         self.netplot = NetworkXPlotter(self.graph, layout="spring")
@@ -522,17 +525,70 @@ class UI(QDialog):
             fontsize=12,
             plot_text=True
         )
-        self.netplot = NetworkXPlotter(self.graph, layout="circular")
-        self.netplot.plot()  # <- saves html sring as a field of object netplot
+        # self.netplot = NetworkXPlotter(self.graph, layout="circular")
+        # self.netplot.plot()  # <- saves html sring as a field of object netplot
 
     def clr(self):
-        pass
+        dialog = QDialog(self)
+        data_for_calculations = {node.name: 0 for node in self.graph.nodes}
+        dialog.setWindowIcon(QIcon("icon.jpg"))
+        dialog.setWindowTitle("Impulse settings")
+        dialog.setWindowIconText("Impulse settings")
+
+        dialog.mainLayout = QGridLayout()
+
+        dialog.select_nodes_combobox = QComboBox()
+        dialog.select_nodes_combobox.addItems([node.name for node in self.graph.nodes])
+
+        dialog.select_impulse_magnitude = QLineEdit("")
+        dialog.select_impulse_magnitude.setPlaceholderText("Enter impulse magnitude")
+        dialog.select_impulse_magnitude.setFixedWidth(200)
+        dialog.text_box = QTextEdit("")
+        dialog.text_box.setPlaceholderText("Here will be displayed a list of added nodes and their weights")
+
+        dialog.impulse_duration = QLineEdit("")
+        dialog.impulse_duration.setPlaceholderText("Enter impulse duration")
+
+        dialog.append_impulse = QPushButton("Append impulse")
+        dialog.append_impulse.setFlat(True)
+
+        dialog.send_impulse = QPushButton("Form impulse")
+        dialog.send_impulse.setFlat(True)
+
+        dialog.mainLayout.addWidget(dialog.select_nodes_combobox, 0, 0, 1, 3)
+        dialog.mainLayout.addWidget(dialog.select_impulse_magnitude, 0, 3, 1, 1)
+        dialog.mainLayout.addWidget(dialog.append_impulse, 0, 4, 1, 1)
+        dialog.mainLayout.addWidget(dialog.text_box, 1, 0, 1, 5)
+        dialog.mainLayout.addWidget(dialog.impulse_duration, 2, 0, 1, 4)
+        dialog.mainLayout.addWidget(dialog.send_impulse, 2, 4, 1, 1)
+
+        def send_data():
+            self.graph.form_connection_matrix()
+            self.graph.send_impulses(np.array(list(data_for_calculations.values())),
+                                     int(dialog.impulse_duration.text()))
+            self.create_graph_html()
+            self.plot_graph()
+
+        def append_data():
+            dialog.text_box.append(str(dialog.select_nodes_combobox.currentText() +
+                                       " | Magnitude: " + dialog.select_impulse_magnitude.text()))
+            data_for_calculations[dialog.select_nodes_combobox.currentText()] = dialog.select_impulse_magnitude.text()
+
+            dialog.select_impulse_magnitude.clear()
+
+        dialog.send_impulse.clicked.connect(send_data)
+        dialog.append_impulse.clicked.connect(append_data)
+
+        dialog.setLayout(dialog.mainLayout)
+        dialog.resize(500, 200)
+
+        dialog.show()
 
     def execute(self):
         self.clr()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QApplication(sys.argv)
     main_window = UI()
     main_window.show()
