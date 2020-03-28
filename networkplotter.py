@@ -7,7 +7,8 @@ import numpy as np
 class NetworkXPlotter(object):
     """Class for casting graph to NetworkX graph and plotting it."""
 
-    def __init__(self, custom_g, layout="spring", dim=2):
+    # def __init__(self, custom_g, layout="spring", dim=2):
+    def __init__(self, custom_g, layout="circular", dim=2):
         """
         Args:
             custom_g(Graph): object of our own class with nodes and connections.
@@ -22,13 +23,15 @@ class NetworkXPlotter(object):
         edges = []
         weights = []
         nodes = []
+        values = []
         for node in custom_g.nodes:
             nodes.append(str(node))
+            values.append(node.value)
             for k, v in node.connections.items():
-                if v!=0:
+                if v != 0:
                     edges.append((str(node), str(k)))
                     weights.append(v)
-                
+
         self.G.add_nodes_from(nodes)
         self.G.add_edges_from(edges)
 
@@ -45,9 +48,13 @@ class NetworkXPlotter(object):
                 "No such layout. Try one of the following: 'spring', 'circular', 'spectral', 'random'."
             )
 
+        index = 0
         for node in self.G.nodes:
             self.G.nodes[node]["pos"] = list(pos[node])
             self.G.nodes[node]["name"] = str(node)
+            self.G.nodes[node]["value"] = values[index]
+            index += 1
+
         index = 0
         for edge in self.G.edges:
             self.G.edges[edge]["start"] = str(edge[0])
@@ -69,7 +76,7 @@ class NetworkXPlotter(object):
         paper_bgcolor=None,
         plot_bgcolor=None,
         plot_text=False,
-        text_color=None
+        text_color=None,
     ):
         """
         Args:edge_opacity
@@ -98,13 +105,13 @@ class NetworkXPlotter(object):
         # 'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis'| 'Inferno'
         # look up for Plotly colorscale in internet for all options
         trace_recode = []
-        
+
         weights = []
         for edge in self.G.edges:
-            weights.append(self.G.edges[edge]['weight'])
-            
-        weights = np.array(weights)/np.max(np.abs(weights))
-        index = 0 
+            weights.append(self.G.edges[edge]["weight"])
+
+        weights = np.array(weights) / np.max(np.abs(weights))
+        index = 0
         for edge in self.G.edges:
             x0, y0 = self.G.nodes[edge[0]]["pos"]
             x1, y1 = self.G.nodes[edge[1]]["pos"]
@@ -118,7 +125,7 @@ class NetworkXPlotter(object):
                 opacity=edge_opacity,
             )
             trace_recode.append(trace)
-            index+=1
+            index += 1
 
         middle_hover_trace = go.Scatter(
             x=[],
@@ -174,9 +181,7 @@ class NetworkXPlotter(object):
                     tickfont=dict(size=fontsize, color=text_color),
                 ),
             ),
-            textfont=dict(
-                color=text_color
-            )
+            textfont=dict(color=text_color),
         )
 
         for node in self.G.nodes():
@@ -193,7 +198,13 @@ class NetworkXPlotter(object):
                 node_trace["marker"]["size"] += tuple([node_size])
             node_trace["marker"]["color"] += tuple([len(adjacencies)])
             text = "Name: " + str(self.G.nodes[node]["name"])
-            node_info = text + "<br># of connections: " + str(len(adjacencies))
+            node_info = (
+                text
+                + "<br>Value: "
+                + str(self.G.nodes[node]["value"])
+                + "<br># of connections: "
+                + str(len(adjacencies))
+            )
             node_trace["hovertext"] += tuple([node_info])
 
         trace_recode.append(node_trace)
@@ -206,8 +217,8 @@ class NetworkXPlotter(object):
                 hovermode="closest",
                 titlefont=dict(size=fontsize, color=text_color),
                 margin={"b": 40, "l": 40, "r": 40, "t": 40},
-                xaxis={"showgrid": False, "zeroline": False, "showticklabels": False, },
-                yaxis={"showgrid": False, "zeroline": False, "showticklabels": False, },
+                xaxis={"showgrid": False, "zeroline": False, "showticklabels": False,},
+                yaxis={"showgrid": False, "zeroline": False, "showticklabels": False,},
                 autosize=True,
                 paper_bgcolor=paper_bgcolor,
                 plot_bgcolor=plot_bgcolor,
