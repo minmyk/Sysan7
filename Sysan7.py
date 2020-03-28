@@ -2,12 +2,14 @@ import numpy as np
 import pandas as pd
 from functools import reduce
 from copy import copy
+from networkplotter import NetworkXPlotter
 from PyQt5.QtWidgets import QApplication, QLineEdit, QDialog, \
     QHBoxLayout, QGridLayout, QStyleFactory, QCheckBox, QPushButton, QTabWidget, QTextEdit
 from PyQt5.QtGui import QPalette, QColor, QIcon
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import Qt
 import sys
+import string
 
 
 def show_qt(raw_html):
@@ -82,7 +84,7 @@ def form_subgraphs(clusters):
                 for node_right in node_left.connections.keys():
                     additive = node_left.connections[node_right] \
                         if node_right in clusters_values[j] \
-                        and node_right not in clusters_values[i] else 0
+                           and node_right not in clusters_values[i] else 0
                     weight += additive
             connections.append([weight, subgraphs[j]])
 
@@ -132,6 +134,15 @@ class Graph(object):
     def set_nodes(self, nodes):
         self.nodes = nodes
 
+    def get_node(self, name):
+        try:
+            for node in self.nodes:
+                if name == node.name:
+                    return node
+            raise ValueError()
+        except ValueError:
+            print("No such node")
+
     def add_node(self, node):
         self.nodes.append(node)
 
@@ -147,7 +158,6 @@ class Graph(object):
     def form_connection_matrix(self):
         self.A = np.zeros((len(self.nodes), len(self.nodes)))
         for i in range(len(self.nodes)):
-
             connection_nodes = list(self.nodes[i].connections.keys())
             for j in range(len(self.nodes)):
                 self.A[i, j] = self.nodes[i].connections[self.nodes[j]] \
@@ -232,43 +242,43 @@ class UI(QDialog):
         # top_box
         self.top_box = QHBoxLayout()
 
-        self.useStylePaletteCheckBox = QCheckBox("Light")
-        self.useStylePaletteCheckBox.setChecked(False)
+        self.switch_color_mode_button = QCheckBox("Light")
+        self.switch_color_mode_button.setChecked(False)
 
-        self.reset = QPushButton("Reset")
-        self.reset.setFlat(True)
+        self.reset_graph_button = QPushButton("Reset graph")
+        self.reset_graph_button.setFlat(True)
 
-        self.run = QPushButton("Execute")
-        self.run.setFlat(True)
+        self.generate_random_graph_button = QPushButton("Generate random graph")
+        self.generate_random_graph_button.setFlat(True)
 
-        self.top_box.addWidget(self.useStylePaletteCheckBox)
+        self.top_box.addWidget(self.switch_color_mode_button)
         self.top_box.addStretch(1)
-        self.top_box.addWidget(self.run)
-        self.top_box.addWidget(self.reset)
+        self.top_box.addWidget(self.generate_random_graph_button)
+        self.top_box.addWidget(self.reset_graph_button)
 
         # middle_box
         self.middle_box = QTabWidget()
 
-        self.addVertex = QPushButton("Add vertex")
-        self.addVertex.setFlat(True)
+        self.add_vertex_button = QPushButton("Add vertex")
+        self.add_vertex_button.setFlat(True)
 
         self.addVertex_value = QLineEdit()
         self.addVertex_value.setPlaceholderText("Name new vertex")
 
-        self.removeVertex = QPushButton("Remove vertex")
-        self.removeVertex.setFlat(True)
+        self.remove_vertex_button = QPushButton("Remove vertex")
+        self.remove_vertex_button.setFlat(True)
 
         self.removeVertex_value = QLineEdit()
         self.removeVertex_value.setPlaceholderText("Name vertex to remove")
 
-        self.addConnection = QPushButton("Add connection")
-        self.addConnection.setFlat(True)
+        self.add_connection_button = QPushButton("Add connection")
+        self.add_connection_button.setFlat(True)
 
         self.addConnection_value = QLineEdit()
         self.addConnection_value.setPlaceholderText("Name vertexes to connect")
 
-        self.removeConnection = QPushButton("Remove connection")
-        self.removeConnection.setFlat(True)
+        self.remove_connection_button = QPushButton("Remove connection")
+        self.remove_connection_button.setFlat(True)
 
         self.removeConnection_value = QLineEdit()
         self.removeConnection_value.setPlaceholderText("Name vertexes to disconnect")
@@ -276,13 +286,13 @@ class UI(QDialog):
         layout = QGridLayout()
 
         layout.addWidget(self.addVertex_value, 0, 0)
-        layout.addWidget(self.addVertex, 1, 0)
+        layout.addWidget(self.add_vertex_button, 1, 0)
         layout.addWidget(self.addConnection_value, 2, 0)
-        layout.addWidget(self.addConnection, 3, 0)
+        layout.addWidget(self.add_connection_button, 3, 0)
         layout.addWidget(self.removeVertex_value, 4, 0)
-        layout.addWidget(self.removeVertex, 5, 0)
+        layout.addWidget(self.remove_vertex_button, 5, 0)
         layout.addWidget(self.removeConnection_value, 6, 0)
-        layout.addWidget(self.removeConnection, 7, 0)
+        layout.addWidget(self.remove_connection_button, 7, 0)
 
         self.middle_box.setLayout(layout)
 
@@ -293,23 +303,23 @@ class UI(QDialog):
 
         # bottom_box
         self.bottom_box = QTabWidget()
-        self.structural_stability = QPushButton("Check structural stability")
-        self.structural_stability.setFlat(True)
+        self.check_structural_stability_button = QPushButton("Check structural stability")
+        self.check_structural_stability_button.setFlat(True)
 
         self.structural_stability_value = QTextEdit()
         self.structural_stability_value.setPlaceholderText("Here will be displayed the list of cycles")
 
-        self.numerical_stability = QPushButton("Check numerical stability")
-        self.numerical_stability.setFlat(True)
+        self.check_numerical_stability_button = QPushButton("Check numerical stability")
+        self.check_numerical_stability_button.setFlat(True)
 
         self.numerical_stability_value = QLineEdit()
         self.numerical_stability_value.setPlaceholderText("Here will be displayed if "
                                                           "the graph is numerically stable or not")
         layout = QGridLayout()
 
-        layout.addWidget(self.structural_stability, 0, 0)
+        layout.addWidget(self.check_structural_stability_button, 0, 0)
         layout.addWidget(self.structural_stability_value, 0, 1)
-        layout.addWidget(self.numerical_stability, 1, 0)
+        layout.addWidget(self.check_numerical_stability_button, 1, 0)
         layout.addWidget(self.numerical_stability_value, 1, 1)
 
         self.bottom_box.setLayout(layout)
@@ -332,18 +342,19 @@ class UI(QDialog):
         self.change_palette()
 
         # set_connections
-        self.useStylePaletteCheckBox.toggled.connect(self.change_palette)
-        self.reset.clicked.connect(self.clr)
-        self.run.clicked.connect(self.execute)
-        self.addVertex.clicked.connect(self.add_vertex)
-        self.removeVertex.clicked.connect(self.remove_vertex)
-        self.addConnection.clicked.connect(self.add_connection)
-        self.removeConnection.clicked.connect(self.remove_connection)
-        self.structural_stability.clicked.connect(self.check_structural_stability)
-        self.numerical_stability.clicked.connect(self.check_numerical_stability)
+        self.switch_color_mode_button.toggled.connect(self.change_palette)
+        self.reset_graph_button.clicked.connect(self.clr)
+        self.generate_random_graph_button.clicked.connect(self.generate_random_graph)
+        self.add_vertex_button.clicked.connect(self.add_vertex)
+        self.remove_vertex_button.clicked.connect(self.remove_vertex)
+        self.add_connection_button.clicked.connect(self.add_connection)
+        self.remove_connection_button.clicked.connect(self.remove_connection)
+        self.check_structural_stability_button.clicked.connect(self.check_structural_stability)
+        self.check_numerical_stability_button.clicked.connect(self.check_numerical_stability)
 
         # graph_init
         self.graph = Graph("Graph")
+        self.netplot = None
 
     def change_palette(self):
         dark_palette = QPalette()
@@ -371,7 +382,7 @@ class UI(QDialog):
         dark_palette.setColor(QPalette.HighlightedText, Qt.white)
         dark_palette.setColor(QPalette.Disabled, QPalette.HighlightedText, QColor(127, 127, 127))
 
-        if self.useStylePaletteCheckBox.isChecked():
+        if self.switch_color_mode_button.isChecked():
             self.plot_graph("<!DOCTYPE html><html><body style='background-color:white;'></body></html>")
             QApplication.setPalette(QApplication.style().standardPalette())
 
@@ -379,29 +390,44 @@ class UI(QDialog):
             self.plot_graph("<!DOCTYPE html><html><body style='background-color:grey;'></body></html>")
             QApplication.setPalette(dark_palette)
 
-    def plot_graph(self, html):
-        self.plot_widget = show_qt(html)
+    def plot_graph(self, html=None):
+        self.plot_widget = show_qt(self.netplot.html) if html is None else show_qt(html)
         self.mainLayout.addWidget(self.plot_widget, 1, 0, 4, 5)
         self.plot_widget.setFixedHeight(500)
 
     def add_vertex(self):
-        params = self.addVertex_value.text().split()
+        params = self.addVertex_value.text().split()  # params[0] - name; params[1] - weight;
         if len(params) != 2:
             self.addVertex_value.clear()
         else:
             self.graph.add_node(Node(*params))
             self.addVertex_value.clear()
+            self.create_graph_html()
+            self.plot_graph()
 
     def add_connection(self):
-        pass
+        params = self.addConnection_value.text().split()  # params[0] - otkuda; params[1] - kuda; params[2] - weight
+        if len(params) != 3:
+            self.addConnection_value.clear()
+        else:
+            node_from = self.graph.get_node(params[0])
+            node_to = self.graph.get_node(params[1])
+            weight = float(params[2])
+            node_from.set_connections([[weight, node_to]])
+            node_to.set_connections([[weight, node_from]])
+            self.addConnection_value.clear()
+            self.create_graph_html()
+            self.plot_graph()
 
     def remove_vertex(self):
         params = self.removeVertex_value.text().split()
-        if len(params) != 2:
+        if len(params) != 1:
             self.removeVertex_value.clear()
         else:
-            self.graph.remove_node(Node(*params))
+            self.graph.remove_node(self.graph.get_node(params[0]))
             self.removeVertex_value.clear()
+            self.create_graph_html()
+            self.plot_graph()
 
     def remove_connection(self):
         params = self.removeConnection_value.text().split()
@@ -412,10 +438,53 @@ class UI(QDialog):
             self.removeConnection_value.clear()
 
     def check_structural_stability(self):
+        cycles = self.graph.search_cycles()
+        self.structural_stability_value.setText(str(cycles))
         pass
 
     def check_numerical_stability(self):
+        stability = "Stable" if self.graph.stability() else "Not Stable"
+        self.numerical_stability_value.setText(stability)
         pass
+
+    def generate_random_graph(self):
+        likelyhood = 0.6
+        nods = [
+            Node(letter, number)
+            for letter, number in zip(
+                string.ascii_lowercase, range(len(string.ascii_lowercase) - 10)
+            )
+        ]
+        for nod in nods:
+            nod.set_connections(
+                [
+                    [rand, x]
+                    for rand, x in zip(np.random.uniform(0, 1, len(nods)), nods)
+                    if np.random.binomial(1, likelyhood)
+                ]
+            )
+
+        self.graph = Graph("Graph")
+        self.graph.set_nodes(nods)
+        self.graph.form_connection_matrix()
+        self.create_graph_html()
+        self.plot_graph()
+
+    def create_graph_html(self):
+        self.netplot = NetworkXPlotter(self.graph, layout="spring")
+        self.netplot.plot(
+            colorscale="sunset",
+            edge_opacity=0.6,
+            edge_color="SlateGrey",
+            node_opacity=1,
+            node_size=12,
+            edge_scale=3,
+            title="Cognitive network visualization<br>(wider edges have higher weights, bigger nodes have self edge)",
+            fontsize=12,
+            plot_text=True
+        )
+        self.netplot = NetworkXPlotter(self.graph, layout="circular")
+        self.netplot.plot()  # <- saves html sring as a field of object netplot
 
     def clr(self):
         pass
