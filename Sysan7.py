@@ -45,16 +45,17 @@ class Node(object):
         return self.name
 
 
-def form_sw_table(swot, t_count):
+def form_sw_table(swot, t_count, s_count=12):
     sw = swot.index
     sw_table = np.zeros((len(sw), len(sw)))
 
     for i in range(len(sw) - 1):
         for j in range(i + 1, len(sw)):
             weight = 0
-            for k in range(len(swot.iloc[i])):
-                weight = weight - min(swot.iloc[i][k], swot.iloc[j][k]) if k < t_count \
-                    else weight + min(swot.iloc[i][k], swot.iloc[j][k])
+            if (i < s_count and j < s_count) or (i >= s_count and j >= s_count):
+                for k in range(len(swot.iloc[i])):
+                    weight = weight - min(swot.iloc[i][k], swot.iloc[j][k]) if k < t_count \
+                        else weight + min(swot.iloc[i][k], swot.iloc[j][k])
 
             sw_table[i, j] = round(weight, 5)
 
@@ -171,7 +172,7 @@ class Graph(object):
         for node in self.nodes:
             node.set_value(nodes_values[node])
 
-    def send_impulses(self, impulse, duration, overall_duration_multiplier=4):
+    def send_impulses(self, impulse, duration, overall_duration_multiplier=10):
         previous = np.zeros((len(self.nodes), 1))
         current = np.array([[node.value] for node in self.nodes])
         for i in range(duration * overall_duration_multiplier):
@@ -200,16 +201,17 @@ class Graph(object):
                     vertexes[layer] = nexts
                 else:
                     break
+
             for length in range(1, len(vertexes)):
-                if node in vertexes[length]:
-                    chains = np.array([[0., node]])
+                if node in vertexes[length] and length > 2:
+                    chains = np.array([[1, node]])
                     for layers in reversed(range(length)):
                         chain = copy(chains)
                         for nodes in vertexes[layers]:
                             for i in range(len(chain[:, -1])):
                                 if chain[i][-1] in nodes.connections.keys():
                                     new_chain = np.append(chain[i], nodes)
-                                    new_chain[0] = chains[i][0] + nodes.connections[chain[i][-1]]
+                                    new_chain[0] = chains[i][0] * np.sign(nodes.connections[chain[i][-1]])
 
                                     if len(chain[0]) == len(chains[0]):
                                         chains = np.hstack((chains, [[0]] * chains.shape[0]))
@@ -221,10 +223,11 @@ class Graph(object):
                     break
         if verbose:
             for cycle in cycles:
-                if cycle[0] > 0:
-                    print("\nWeight = ", cycle[0])
-                    print(list(map(lambda val: str(val), cycle[1])))
-        return cycles
+                print("\nWeight = ", cycle[0])
+                print(list(map(lambda val: str(val), cycle[1])))
+
+        unstable_cycles = list(filter(lambda el: el[0] > 0, cycles))
+        return unstable_cycles
 
     def get_eigens(self):
         return np.linalg.eig(self.A)[0]
