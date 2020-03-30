@@ -1,9 +1,10 @@
+import networkx as nx
+import plotly
+import plotly.graph_objs as go
 import numpy as np
 import pandas as pd
 from functools import reduce
 from copy import copy
-from networkplotter import NetworkXPlotter
-from backend.create_swot_table import Swot
 from PyQt5.QtWidgets import QApplication, QLineEdit, QDialog, \
     QHBoxLayout, QGridLayout, QStyleFactory, QCheckBox, QPushButton, QTabWidget, QTextEdit, QComboBox
 from PyQt5.QtGui import QPalette, QColor, QIcon
@@ -12,6 +13,458 @@ from PyQt5.QtCore import Qt
 import sys
 
 
+# create_swot_table.py module
+def deambiguos(array, letter):
+    indexes = list(map(lambda index: letter + str(index + 1), range(len(array))))
+    return indexes
+
+
+class Swot:
+    def __init__(self):
+        self.strengths = (
+            "No human interaction in driving",
+            "Prevention of car accidents",
+            "Speed limit",
+            "Traffic analysis and lane moving control",
+            "ABS, ESP systems",
+            "Automatic Parking",
+            "Fully automated Traffic Regulations",
+            "Rational route selection",
+            "Rational fuel usage",
+            "Public transport sync",
+            "Automatic photos",
+            "Rational time management",
+        )
+        self.weaknesses = (
+            "System wear",
+            "Huge computational complexity",
+            "Electric dependency",
+            "Computer vision weaknesses (accuracy)",
+            "Huge error price",
+            "Potential persnal data leakage",
+            "GPS/Internet quality",
+            "No relationships with non-automated cars",
+            "Trolley problem",
+            "Software bugs",
+            "High price",
+            "Man depends on vehicle"
+        )
+        self.opportunities = (
+            "E-maps of road signs",
+            "Vehicle to vehicle connection",
+            "More passanger places (no driver needed)",
+            "System to prevent trafic jams",
+            "Alternative energy usage",
+            "New powerful computer vision technologies",
+            "Cars technologies with less polution",
+            "High efficency engines",
+            "High demand on cars",
+            "Goverment support of autonomous cars dev",
+        )
+
+        self.threats = (
+            "High production price",
+            "High service price",
+            "Not enough qualified mechanics",
+            "Bad road cover surface",
+            "Not ordinary behaivor of some road users",
+            "Rejection by people",
+            "Hacking, confidentiality problems",
+            "Increased scam interest",
+            "Job abolition",
+            "Inadequacy of legal system",
+        )
+        self.so_letters = None
+        self.st_letters = None
+        self.wo_letters = None
+        self.wt_letters = None
+
+    def swot(self):
+        strengths_letters = deambiguos(self.strengths, 'S')
+        weaknesses_letters = deambiguos(self.weaknesses, 'W')
+        opportunities_letters = deambiguos(self.opportunities, 'O')
+        threats_letters = deambiguos(self.threats, 'T')
+
+        st = pd.DataFrame(index=self.strengths, columns=self.threats)
+        so = pd.DataFrame(index=self.strengths, columns=self.opportunities)
+        wt = pd.DataFrame(index=self.weaknesses, columns=self.threats)
+        wo = pd.DataFrame(index=self.weaknesses, columns=self.opportunities)
+        self.st_letters = pd.DataFrame(index=strengths_letters, columns=threats_letters)
+        self.so_letters = pd.DataFrame(index=strengths_letters, columns=opportunities_letters)
+        self.wt_letters = pd.DataFrame(index=weaknesses_letters, columns=threats_letters)
+        self.wo_letters = pd.DataFrame(index=weaknesses_letters, columns=opportunities_letters)
+
+        st['High production price'] = [0.0, 0.09, 0.4, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2, 0.6, ]
+        st['High service price'] = [0.4, 0.3, 0.4, 0.4, 0.1, 0.2, 0.8, 0.0, 0.1, 0.0, 0.0, 0.2, ]
+        st['Not enough qualified mechanics'] = [0.0, 0.5, 0.4, 0.1, 0.8, 0.0, 0.65, 0.0, 0.33, 0.0, 0.0, 0.0, ]
+        st['Bad road cover surface'] = [0.4, 0.7, 0.6, 0.45, 0.75, 0.0, 0.8, 0.5, 0.0, 0.1, 0.0, 0.3, ]
+        st['Not ordinary behaivor of some road users'] = [0.8, 0.9, 0.6, 1.0, 0.05, 0.0, 0.3, 0.0, 0.0, 0.5, 0.0, 0.0, ]
+        st['Rejection by people'] = [0.0, .95, 0.0, 0.8, 0.0, 0.25, .9, 0.17, 0.5, 0.8, 0.05, .84, ]
+        st['Hacking, confidentiality problems'] = [.75, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.2, 0.0, 0.0, 0.0, ]
+        st['Increased scam interest'] = [.75, 0.2, 0.0, 0.0, 0.0, 0.12, 0.1, 0.4, 0.3, 0.0, 0.0, 0.7, ]
+        st['Job abolition'] = [0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.3, 0.0, 0.0, 0.7, ]
+        st['Inadequacy of legal system'] = [0.0, 0.4, 0.5, 0.2, 0.32, 0.0, 0.98, 0.0, 0.0, 0.28, 0.0, 0.0, ]
+
+        self.st_letters['T1'] = [0.0, 0.09, 0.4, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2, 0.6, ]
+        self.st_letters['T2'] = [0.4, 0.3, 0.4, 0.4, 0.1, 0.2, 0.8, 0.0, 0.1, 0.0, 0.0, 0.2, ]
+        self.st_letters['T3'] = [0.0, 0.5, 0.4, 0.1, 0.8, 0.0, 0.65, 0.0, 0.33, 0.0, 0.0, 0.0, ]
+        self.st_letters['T4'] = [0.4, 0.7, 0.6, 0.45, 0.75, 0.0, 0.8, 0.5, 0.0, 0.1, 0.0, 0.3, ]
+        self.st_letters['T5'] = [0.8, 0.9, 0.6, 1.0, 0.05, 0.0, 0.3, 0.0, 0.0, 0.5, 0.0, 0.0, ]
+        self.st_letters['T6'] = [0.0, .95, 0.0, 0.8, 0.0, 0.25, .9, 0.17, 0.5, 0.8, 0.05, .84, ]
+        self.st_letters['T7'] = [.75, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.2, 0.0, 0.0, 0.0, ]
+        self.st_letters['T8'] = [.75, 0.2, 0.0, 0.0, 0.0, 0.12, 0.1, 0.4, 0.3, 0.0, 0.0, 0.7, ]
+        self.st_letters['T9'] = [0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.3, 0.0, 0.0, 0.7, ]
+        self.st_letters['T10'] = [0.0, 0.4, 0.5, 0.2, 0.32, 0.0, 0.98, 0.0, 0.0, 0.28, 0.0, 0.0, ]
+        st.style.background_gradient(cmap='Oranges', axis=None)
+
+        so["E-maps of road signs"] = [0.5, 0.4, 0.8, 0.9, 0.0, 0.2, 0.7, 0.9, 0.0, 0.3, 0.8, 0.0]
+        so["Vehicle to vehicle connection"] = [0.0, 0.2, 0.4, 0.55, 0.0, 0.0, 0.25, 0.25, 0.2, 0.7, 0.0, 0.0]
+        so["More passanger places (no driver needed)"] = [0.99, 0.8, 0.6, 0.8, 0.2, 0.8, 0.92, 0.9, 0.5, 0.93, 0.4, 0.8]
+        so["System to prevent trafic jams"] = [0.86, 0.97, 0.9, 0.85, 0.15, 0.45, 0.85, 1.0, 0.2, 0.1, 0.0, 0.7]
+        so["Alternative energy usage"] = [0.0, 0.0, 0.3, 0.2, 0.0, 0.0, 0.35, 0.28, 0.95, 0.2, 0.0, 0.1]
+        so["New powerful computer vision technologies"] = [0.41, 0.0, 0.31, 0.7, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.75,
+                                                           0.0]
+        so["Cars technologies with less polution"] = [0.8, 0.0, 0.69, 0.54, 0.0, 0.2, 0.3, 0.75, 0.88, 0.0, 0.0, 0.62]
+        so["High efficency engines"] = [0.8, 0.0, 0.5, 0.2, 0.3, 0.0, 0.21, 0.2, 0.8, 0.0, 0.0, 0.0]
+        so["High demand on cars"] = [0.9, 0.85, 0.1, 0.6, 0.07, 0.36, 0.28, 0.65, 0.7, 0.0, 0.42, 0.9]
+        so["Goverment support of autonomous cars dev"] = [0.65, 0.95, 0.8, 0.75, 0.0, 0.39, 1.0, 0.0, 0.5, 0.8, 0.0,
+                                                          0.59]
+
+        self.so_letters['O1'] = [0.5, 0.4, 0.8, 0.9, 0.0, 0.2, 0.7, 0.9, 0.0, 0.3, 0.8, 0.0]
+        self.so_letters['O2'] = [0.0, 0.2, 0.4, 0.55, 0.0, 0.0, 0.25, 0.25, 0.2, 0.7, 0.0, 0.0]
+        self.so_letters['O3'] = [0.99, 0.8, 0.6, 0.8, 0.2, 0.8, 0.92, 0.9, 0.5, 0.93, 0.4, 0.8]
+        self.so_letters['O4'] = [0.86, 0.97, 0.9, 0.85, 0.15, 0.45, 0.85, 1.0, 0.2, 0.1, 0.0, 0.7]
+        self.so_letters['O5'] = [0.0, 0.0, 0.3, 0.2, 0.0, 0.0, 0.35, 0.28, 0.95, 0.2, 0.0, 0.1]
+        self.so_letters['O6'] = [0.41, 0.0, 0.31, 0.7, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.75, 0.0]
+        self.so_letters['O7'] = [0.8, 0.0, 0.69, 0.54, 0.0, 0.2, 0.3, 0.75, 0.88, 0.0, 0.0, 0.62]
+        self.so_letters['O8'] = [0.8, 0.0, 0.5, 0.2, 0.3, 0.0, 0.21, 0.2, 0.8, 0.0, 0.0, 0.0]
+        self.so_letters['O9'] = [0.9, 0.85, 0.1, 0.6, 0.07, 0.36, 0.28, 0.65, 0.7, 0.0, 0.42, 0.9]
+        self.so_letters['O10'] = [0.65, 0.95, 0.8, 0.75, 0.0, 0.39, 1.0, 0.0, 0.5, 0.8, 0.0, 0.59]
+        so.style.background_gradient(cmap='Greens', axis=None)
+
+        wt['High production price'] = [0.1, 0.85, 0.33, 0.4, 0.0, 0.5, 0.4, 0.0, 0.0, 0.6, 0.9, 0.0, ]
+        wt['High service price'] = [0.7, 0.0, 0.4, 0.0, 0.0, 0.0, 0.2, 0.0, 0.0, 0.35, 0.23, 0.1, ]
+        wt['Not enough qualified mechanics'] = [0.65, 0.0, 0.25, 0.0, 0.1, 0.0, 0.3, 0.2, 0.0, 0.6, 0.44, 0.0, ]
+        wt['Bad road cover surface'] = [0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.0, 0.15, 0.3, 0.1, ]
+        wt['Not ordinary behaivor of some road users'] = [0.69, 0.9, 0.02, 0.95, 1.0, 0.0, 0.67, 0.8, 0.75, 0.6, 0.0,
+                                                          0.8, ]
+        wt['Rejection by people'] = [0.0, 0.0, 0.0, 0.6, 0.85, 0.45, 0.0, 0.1, 1.0, 0.34, 0.18, 0.59, ]
+        wt['Hacking, confidentiality problems'] = [0.0, 0.0, 0.0, 0.0, 0.1, 0.99, 0.2, 0.0, 0.35, 0.5, 0.0, 0.2, ]
+        wt['Increased scam interest'] = [0.0, 0.0, 0.0, 0.1, 0.4, 0.75, 0.35, 0.0, 0.4, 0.65, 0.95, 0.15, ]
+        wt['Job abolition'] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.1, 0.1, ]
+        wt['Inadequacy of legal system'] = [0.0, 0.0, 0.0, 0.7, 0.92, 0.65, 0.0, 0.25, 1.0, 0.35, 0.25, 0.4, ]
+
+        self.wt_letters['T1'] = [0.1, 0.85, 0.33, 0.4, 0.0, 0.5, 0.4, 0.0, 0.0, 0.6, 0.9, 0.0, ]
+        self.wt_letters['T2'] = [0.7, 0.0, 0.4, 0.0, 0.0, 0.0, 0.2, 0.0, 0.0, 0.35, 0.23, 0.1, ]
+        self.wt_letters['T3'] = [0.65, 0.0, 0.25, 0.0, 0.1, 0.0, 0.3, 0.2, 0.0, 0.6, 0.44, 0.0, ]
+        self.wt_letters['T4'] = [0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.0, 0.15, 0.3, 0.1, ]
+        self.wt_letters['T5'] = [0.69, 0.9, 0.02, 0.95, 1.0, 0.0, 0.67, 0.8, 0.75, 0.6, 0.0, 0.8, ]
+        self.wt_letters['T6'] = [0.0, 0.0, 0.0, 0.6, 0.85, 0.45, 0.0, 0.1, 1.0, 0.34, 0.18, 0.59, ]
+        self.wt_letters['T7'] = [0.0, 0.0, 0.0, 0.0, 0.1, 0.99, 0.2, 0.0, 0.35, 0.5, 0.0, 0.2, ]
+        self.wt_letters['T8'] = [0.0, 0.0, 0.0, 0.1, 0.4, 0.75, 0.35, 0.0, 0.4, 0.65, 0.95, 0.15, ]
+        self.wt_letters['T9'] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.1, 0.1, ]
+        self.wt_letters['T10'] = [0.0, 0.0, 0.0, 0.7, 0.92, 0.65, 0.0, 0.25, 1.0, 0.35, 0.25, 0.4, ]
+        wt.style.background_gradient(cmap='Reds', axis=None)
+
+        wo["E-maps of road signs"] = [0.0, 0.9, 0.2, 0.0, 0.05, 0.3, 0.8, 0.1, 0.0, 0.48, 0.75, 0.0]
+        wo["Vehicle to vehicle connection"] = [0.1, 0.96, 0.3, 0.0, 0.0, 0.7, 1.0, 0.83, 0.22, 0.56, 0.8, 0.0]
+        wo["More passanger places (no driver needed)"] = [0.3, 0.7, 0.0, 0.0, 0.8, 0.0, 0.9, 0.0, 0.76, 0.7, 0.5, 0.1]
+        wo["System to prevent trafic jams"] = [0.2, 0.8, 0.08, 0.6, 0.3, 0.2, 0.7, 0.6, 0.4, 0.4, 0.83, 0.0]
+        wo["Alternative energy usage"] = [0.7, 0.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.13, 0.35, 0.0]
+        wo["New powerful computer vision technologies"] = [0.22, 0.9, 0.65, 0.4, 0.35, 0.12, 0.0, 0.08, 0.0, 0.5, 0.4,
+                                                           0.0]
+        wo["Cars technologies with less polution"] = [0.5, 0.0, 0.37, 0.0, 0.0, 0.0, 0.3, 0.0, 0.2, 0.21, 0.12, 0.0]
+        wo["High efficency engines"] = [0.43, 0.0, 0.25, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.1, 0.0, 0.0]
+        wo["High demand on cars"] = [0.3, 0.0, 0.5, 0.6, 0.25, 0.4, 0.15, 0.1, 0.39, 0.7, 0.9, 0.0]
+        wo["Goverment support of autonomous cars dev"] = [0.0, 0.37, 0.3, 0.3, 0.9, 0.6, 0.1, 0.09, 0.99, 0.65, 0.0,
+                                                          0.39]
+
+        self.wo_letters['O1'] = [0.0, 0.9, 0.2, 0.0, 0.05, 0.3, 0.8, 0.1, 0.0, 0.48, 0.75, 0.0]
+        self.wo_letters['O2'] = [0.1, 0.96, 0.3, 0.0, 0.0, 0.7, 1.0, 0.83, 0.22, 0.56, 0.8, 0.0]
+        self.wo_letters['O3'] = [0.3, 0.7, 0.0, 0.0, 0.8, 0.0, 0.9, 0.0, 0.76, 0.7, 0.5, 0.1]
+        self.wo_letters['O4'] = [0.2, 0.8, 0.08, 0.6, 0.3, 0.2, 0.7, 0.6, 0.4, 0.4, 0.83, 0.0]
+        self.wo_letters['O5'] = [0.7, 0.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.13, 0.35, 0.0]
+        self.wo_letters['O6'] = [0.22, 0.9, 0.65, 0.4, 0.35, 0.12, 0.0, 0.08, 0.0, 0.5, 0.4, 0.0]
+        self.wo_letters['O7'] = [0.5, 0.0, 0.37, 0.0, 0.0, 0.0, 0.3, 0.0, 0.2, 0.21, 0.12, 0.0]
+        self.wo_letters['O8'] = [0.43, 0.0, 0.25, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.1, 0.0, 0.0]
+        self.wo_letters['O9'] = [0.3, 0.0, 0.5, 0.6, 0.25, 0.4, 0.15, 0.1, 0.39, 0.7, 0.9, 0.0]
+        self.wo_letters['O10'] = [0.0, 0.37, 0.3, 0.3, 0.9, 0.6, 0.1, 0.09, 0.99, 0.65, 0.0, 0.39]
+
+        wo.style.background_gradient(cmap='Blues', axis=None)
+
+        swot = pd.concat([pd.concat([st, so], axis=1), pd.concat([wt, wo], axis=1)], axis=0)
+        swot_letteres = pd.concat((pd.concat((self.st_letters, self.so_letters), axis=1), pd.concat((self.wt_letters,
+                                                                                                     self.wo_letters),
+                                                                                                    axis=1)), axis=0)
+
+        return swot, swot_letteres
+
+
+# networkxplotter.py module
+class NetworkXPlotter(object):
+    """Class for casting graph to NetworkX graph and plotting it."""
+
+    # def __init__(self, custom_g, layout="spring", dim=2):
+    def __init__(self, custom_g, layout="circular", dim=2):
+        """
+        Args:
+            custom_g(Graph): object of our own class with nodes and connections.
+            layout(str): type of layout for ploting ('spring', 'circular', 'spectral', 'random').
+        Raises:
+            ValueError: not implemented type of layout.
+        """
+        # currently only dim = 2 is possible
+        self.dim = dim
+        self.html = None
+        self.G = nx.DiGraph()
+        edges = []
+        weights = []
+        nodes = []
+        values = []
+        for node in custom_g.nodes:
+            nodes.append(str(node))
+            values.append(node.value)
+            for k, v in node.connections.items():
+                if v != 0:
+                    edges.append((str(node), str(k)))
+                    weights.append(v)
+
+        self.G.add_nodes_from(nodes)
+        self.G.add_edges_from(edges)
+
+        if layout == "spring":
+            pos = nx.layout.spring_layout(self.G, dim=2)
+        elif layout == "circular":
+            pos = nx.layout.circular_layout(self.G, dim=2)
+        elif layout == "spectral":
+            pos = nx.layout.spectral_layout(self.G, dim=2)
+        elif layout == "random":
+            pos = nx.layout.random_layout(self.G, dim=2)
+        else:
+            raise ValueError(
+                "No such layout. Try one of the following: 'spring', 'circular', 'spectral', 'random'."
+            )
+
+        index = 0
+        for node in self.G.nodes:
+            self.G.nodes[node]["pos"] = list(pos[node])
+            self.G.nodes[node]["name"] = str(node)
+            self.G.nodes[node]["value"] = values[index]
+            index += 1
+
+        index = 0
+        for edge in self.G.edges:
+            self.G.edges[edge]["start"] = str(edge[0])
+            self.G.edges[edge]["end"] = str(edge[1])
+            self.G.edges[edge]["weight"] = weights[index]
+            index += 1
+
+    def plot(
+        self,
+        colorscale="Inferno",
+        reversescale=False,
+        edge_opacity=0.5,
+        edge_color="Black",
+        node_opacity=0.5,
+        node_size=10,
+        edge_scale=0,
+        title="Network Graph",
+        fontsize=16,
+        paper_bgcolor=None,
+        plot_bgcolor=None,
+        plot_text=False,
+        text_color=None,
+    ):
+        """
+        Args:edge_opacity
+            save_html(bool): True to save html code as a string
+            colorscale(str): Plotly colorscale for nodes (see below). Mostly the same as matplotlib colormaps
+            reversescale(bool): True to use reveresed colorscale. use 'colorscalename_r' in colorscale to also do it
+            edge_opacity(float): opacity of edges from 0 to 1
+            edge_color(str): CSS string name of color for edges
+            node_opacity(float): opacity of nodes from 0 to 1
+            node_size(int): size of nodes without self-connection, others are x1.5 bigger
+            edge_scale(float): multiplier of edge size. Formula edge_width = edge_scale*edge_weight + 1
+            title(str): title of the plot
+            fontsize(int): fontsize of the title
+            paper_bgcolor(str or None): (Experiment) change background color None or
+            'rgba(xxx,xxx,xxx,0.3)' - not recommended
+            plot_bgcolor(str or None): (Experiment) change background color None or
+            'rgba(xxx,xxx,xxx,0.5)' - not recommended
+            plot_text(bool): True to write names of nodes on figure
+            text_color(str or None): text color
+        Returns:
+            self(NetworkXPlotter) object of NetworkXPlotter class
+        """
+        # colorscale options
+        # 'Greys' | 'YlGnBu' | 'Greens' | 'YlOrRd' | 'Bluered' | 'RdBu' |
+        # 'Reds' | 'Blues' | 'Picnic' | 'Rainbow' | 'Portland' | 'Jet' | 'Magma'
+        # 'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis'| 'Inferno'
+        # look up for Plotly colorscale in internet for all options
+        trace_recode = []
+
+        weights = []
+        for edge in self.G.edges:
+            weights.append(self.G.edges[edge]["weight"])
+
+        weights = np.array(weights) / np.max(np.abs(weights))
+        index = 0
+        for edge in self.G.edges:
+            x0, y0 = self.G.nodes[edge[0]]["pos"]
+            x1, y1 = self.G.nodes[edge[1]]["pos"]
+            weight = edge_scale * abs(weights[index]) + 1
+            trace = go.Scatter(
+                x=tuple([x0, x1, None]),
+                y=tuple([y0, y1, None]),
+                mode="lines",
+                line={"width": weight, "color": edge_color},
+                line_shape="spline",
+                opacity=edge_opacity,
+            )
+            trace_recode.append(trace)
+            index += 1
+
+        middle_hover_trace = go.Scatter(
+            x=[],
+            y=[],
+            hovertext=[],
+            mode="markers",
+            hoverinfo="text",
+            marker={"size": 20, "color": edge_color},
+            opacity=0,
+        )
+
+        for edge in self.G.edges:
+            x0, y0 = self.G.nodes[edge[0]]["pos"]
+            x1, y1 = self.G.nodes[edge[1]]["pos"]
+            hovertext = (
+                "From: "
+                + str(self.G.edges[edge]["start"])
+                + "<br>"
+                + "To: "
+                + str(self.G.edges[edge]["end"])
+                + "<br>"
+                + "Weight: "
+                + str(self.G.edges[edge]["weight"])
+            )
+            middle_hover_trace["x"] += tuple([(x0 + x1) / 2])
+            middle_hover_trace["y"] += tuple([(y0 + y1) / 2])
+            middle_hover_trace["hovertext"] += tuple([hovertext])
+
+        trace_recode.append(middle_hover_trace)
+
+        node_trace = go.Scatter(
+            x=[],
+            y=[],
+            hovertext=[],
+            text=[],
+            mode="markers+text" if plot_text else "markers",
+            textposition="bottom center",
+            hoverinfo="text",
+            marker=dict(
+                line=dict(width=node_size / 10, color="Black"),
+                showscale=True,
+                colorscale=colorscale,
+                reversescale=reversescale,
+                opacity=node_opacity,
+                color=[],
+                size=[],
+                colorbar=dict(
+                    thickness=10,
+                    title="Node Connections",
+                    xanchor="left",
+                    titleside="right",
+                    titlefont=dict(size=fontsize, color=text_color),
+                    tickfont=dict(size=fontsize, color=text_color),
+                ),
+            ),
+            textfont=dict(color=text_color),
+        )
+
+        for node in self.G.nodes():
+            x, y = self.G.nodes[node]["pos"]
+            text = str(self.G.nodes[node]["name"])
+            node_trace["x"] += tuple([x])
+            node_trace["y"] += tuple([y])
+            node_trace["text"] += tuple([text])
+
+        for node, adjacencies in self.G.adjacency():
+            if node in adjacencies.keys():
+                node_trace["marker"]["size"] += tuple([1.5 * node_size])
+            else:
+                node_trace["marker"]["size"] += tuple([node_size])
+            node_trace["marker"]["color"] += tuple([len(adjacencies)])
+            text = "Name: " + str(self.G.nodes[node]["name"])
+            node_info = (
+                text
+                + "<br>Value: "
+                + str(self.G.nodes[node]["value"])
+                + "<br># of connections: "
+                + str(len(adjacencies))
+            )
+            node_trace["hovertext"] += tuple([node_info])
+
+        trace_recode.append(node_trace)
+
+        fig = go.Figure(
+            data=trace_recode,
+            layout=go.Layout(
+                title=title,
+                showlegend=False,
+                hovermode="closest",
+                titlefont=dict(size=fontsize, color=text_color),
+                margin={"b": 40, "l": 40, "r": 40, "t": 40},
+                xaxis={"showgrid": False, "zeroline": False, "showticklabels": False},
+                yaxis={"showgrid": False, "zeroline": False, "showticklabels": False},
+                autosize=True,
+                paper_bgcolor=paper_bgcolor,
+                plot_bgcolor=plot_bgcolor,
+                annotations=[
+                    dict(
+                        ax=(
+                            self.G.nodes[edge[0]]["pos"][0]
+                            + self.G.nodes[edge[1]]["pos"][0]
+                        )
+                        / 2,
+                        ay=(
+                            self.G.nodes[edge[0]]["pos"][1]
+                            + self.G.nodes[edge[1]]["pos"][1]
+                        )
+                        / 2,
+                        axref="x",
+                        ayref="y",
+                        x=(
+                            self.G.nodes[edge[1]]["pos"][0] * 3
+                            + self.G.nodes[edge[0]]["pos"][0]
+                        )
+                        / 4,
+                        y=(
+                            self.G.nodes[edge[1]]["pos"][1] * 3
+                            + self.G.nodes[edge[0]]["pos"][1]
+                        )
+                        / 4,
+                        xref="x",
+                        yref="y",
+                        showarrow=True,
+                        arrowcolor=edge_color,
+                        arrowhead=4,
+                        arrowsize=2,
+                        arrowwidth=edge_scale * 0.05 + 1,
+                        opacity=edge_opacity,
+                    )
+                    for edge in self.G.edges
+                ],
+            ),
+        )
+        self.html = "<html><body>"
+        self.html += plotly.offline.plot(
+            fig, output_type="div", include_plotlyjs="cdn",
+        )
+        self.html += "</body></html>"
+        return self
+
+
+# Sysan7.py module
 def show_qt(raw_html):
     fig_view = QWebEngineView()
     fig_view.setHtml(raw_html)
@@ -435,7 +888,7 @@ class UI(QDialog):
             self.plot_graph()
 
     def add_connection(self):
-        params = self.add_connection_value.text().split(' ; ')  # params[0] - otkuda; [1] - kuda; [2] - weight
+        params = self.add_connection_value.text().split(' ; ')  # params[0] - from; [1] - to; [2] - weight
         if len(params) != 3:
             self.add_connection_value.clear()
         else:
@@ -443,7 +896,7 @@ class UI(QDialog):
             node_to = self.graph.get_node(params[1])
             weight = float(params[2])
             node_from.set_connections([[weight, node_to]])
-            node_to.set_connections([[weight, node_from]])
+            # node_to.set_connections([[weight, node_from]])  # for two-way connection
             self.add_connection_value.clear()
             self.create_graph_html()
             self.plot_graph()
@@ -459,14 +912,14 @@ class UI(QDialog):
             self.plot_graph()
 
     def remove_connection(self):
-        params = self.remove_connection_value.text().split(' ; ')  # params[0] - node1; [1] - node2;
+        params = self.remove_connection_value.text().split(' ; ')  # params[0] - from; [1] - to;
         if len(params) != 2:
             self.remove_connection_value.clear()
         else:
-            node1 = self.graph.get_node(params[0])
-            node2 = self.graph.get_node(params[1])
-            node1.remove_connection(node2)
-            node2.remove_connection(node1)
+            node_from = self.graph.get_node(params[0])
+            node_to = self.graph.get_node(params[1])
+            node_from.remove_connection(node_to)
+            # node2.remove_connection(node1)  # for two-way connection
             self.remove_connection_value.clear()
             self.create_graph_html()
             self.plot_graph()
@@ -476,11 +929,11 @@ class UI(QDialog):
         if len(params) != 3:
             self.alter_connection_value.clear()
         else:
-            node1 = self.graph.get_node(params[0])
-            node2 = self.graph.get_node(params[1])
+            node_from = self.graph.get_node(params[0])
+            node_to = self.graph.get_node(params[1])
             weight = float(params[2])
-            node1.set_weight([weight, node2])
-            node2.set_weight([weight, node1])
+            node_from.set_weight([weight, node_to])
+            # node_to.set_weight([weight, node_from])  # for two-way connection
             self.alter_connection_value.clear()
             self.create_graph_html()
             self.plot_graph()
