@@ -425,7 +425,7 @@ class UI(QDialog):
         self.plot_widget.setFixedHeight(500)
 
     def add_vertex(self):
-        params = self.add_vertex_value.text().split()  # params[0] - name; params[1] - weight;
+        params = self.add_vertex_value.text().split(' ; ')  # params[0] - name; [1] - weight;
         if len(params) != 2:
             self.add_vertex_value.clear()
         else:
@@ -435,7 +435,7 @@ class UI(QDialog):
             self.plot_graph()
 
     def add_connection(self):
-        params = self.add_connection_value.text().split()  # params[0] - otkuda; params[1] - kuda; params[2] - weight
+        params = self.add_connection_value.text().split(' ; ')  # params[0] - otkuda; [1] - kuda; [2] - weight
         if len(params) != 3:
             self.add_connection_value.clear()
         else:
@@ -449,7 +449,7 @@ class UI(QDialog):
             self.plot_graph()
 
     def remove_vertex(self):
-        params = self.remove_vertex_value.text().split()
+        params = self.remove_vertex_value.text().split(' ; ')
         if len(params) != 1:
             self.remove_vertex_value.clear()
         else:
@@ -459,7 +459,7 @@ class UI(QDialog):
             self.plot_graph()
 
     def remove_connection(self):
-        params = self.remove_connection_value.text().split()  # params[0] - node1; params[1] - node2;
+        params = self.remove_connection_value.text().split(' ; ')  # params[0] - node1; [1] - node2;
         if len(params) != 2:
             self.remove_connection_value.clear()
         else:
@@ -472,7 +472,7 @@ class UI(QDialog):
             self.plot_graph()
 
     def alter_connection(self):
-        params = self.alter_connection_value.text().split()  # params[0] - node1; params[1] - node2; params[2] - weight;
+        params = self.alter_connection_value.text().split(' ; ')  # params[0] - node1; [1] - node2; [2] - weight;
         if len(params) != 3:
             self.alter_connection_value.clear()
         else:
@@ -530,18 +530,36 @@ class UI(QDialog):
         self.plot_graph()
 
     def create_graph_html(self):
-        self.netplot = NetworkXPlotter(self.graph, layout="spring")
-        self.netplot.plot(
-            colorscale="sunset",
-            edge_opacity=0.6,
-            edge_color="SlateGrey",
-            node_opacity=1,
-            node_size=12,
-            edge_scale=3,
-            title="Cognitive network visualization<br>(wider edges have higher weights, bigger nodes have self edge)",
-            fontsize=12,
-            plot_text=True
-        )
+        self.netplot = NetworkXPlotter(self.graph)
+        if self.switch_color_mode_button.isChecked():
+            self.netplot.plot(
+                colorscale="sunset",
+                edge_opacity=0.6,
+                edge_color="SlateGrey",
+                node_opacity=1,
+                node_size=12,
+                edge_scale=3,
+                title="Cognitive network visualization<br>(wider edges have higher weights, "
+                      "bigger nodes have self edge)",
+                fontsize=12,
+                plot_text=True
+            )
+        else:
+            self.netplot.plot(
+                colorscale="sunset",
+                edge_opacity=0.6,
+                edge_color="WhiteSmoke",
+                node_opacity=1,
+                node_size=12,
+                edge_scale=3,
+                title="Cognitive network visualization (Dark)<br>(wider edges have higher weights, "
+                      "bigger nodes have self edge)",
+                fontsize=12,
+                plot_text=True,
+                paper_bgcolor='rgba(42,42,42,1)',
+                plot_bgcolor='rgba(53,53,53,1)',
+                text_color="Silver"
+            )
 
     def send_impulse(self):
         dialog = QDialog(self)
