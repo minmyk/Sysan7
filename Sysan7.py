@@ -14,190 +14,69 @@ import sys
 
 
 # create_swot_table.py module
-def deambiguos(array, letter):
-    indexes = list(map(lambda index: letter + str(index + 1), range(len(array))))
-    return indexes
 
 
-class Swot:
+class Self_Driving_Car_Map:
     def __init__(self):
-        self.strengths = (
-            "No human interaction in driving",
-            "Prevention of car accidents",
-            "Speed limit",
-            "Traffic analysis and lane moving control",
-            "ABS, ESP systems",
-            "Automatic Parking",
-            "Fully automated Traffic Regulations",
-            "Rational route selection",
-            "Rational fuel usage",
-            "Public transport sync",
-            "Automatic photos",
-            "Rational time management",
-        )
-        self.weaknesses = (
-            "System wear",
-            "Huge computational complexity",
-            "Electric dependency",
-            "Computer vision weaknesses (accuracy)",
-            "Huge error price",
-            "Potential persnal data leakage",
+        actions = [
+            "Invest into ML Technologies",
+            "Invest into Eco-Friendly Technologies",
+            "Invest into Car Technologies",
+            "Invest into Crypto Technologies",
+            "Invest into Software Development",
+            "Invest into Advertisments",
+            "Invest into Education",
+            "Create Service Centres",
+            "Decrease Fuel Price",
+            "Use Eco-Friendly Materials",
+            "Use Cheap Materials",
+            "Get Government Support",
+            "Boosting Technological Progress",
+            "Encourage Existing Industries",
+            "Boost Infrastructure",
+            "Develop New Laws",
+            "Develop GPS Technologies",
+            "Develop Safety Systems",
+            "Develop New Laws",
+            "Develop Better GPS",
+            "Increase Social Awareness",
+        ]
+        inner_environ = [
+            "Rational Fuel Usage",
+            "Adequate Price",
+            "State-of-the-Art Software",
+            "Impoved Hardware",
+            "Confidentiality Problem",
+            "Vehicle to Vehicle Connection",
             "GPS/Internet quality",
-            "No relationships with non-automated cars",
-            "Trolley problem",
-            "Software bugs",
-            "High price",
-            "Man depends on vehicle"
-        )
-        self.opportunities = (
-            "E-maps of road signs",
-            "Vehicle to vehicle connection",
-            "More passanger places (no driver needed)",
-            "System to prevent trafic jams",
-            "Alternative energy usage",
-            "New powerful computer vision technologies",
-            "Cars technologies with less polution",
-            "High efficency engines",
-            "High demand on cars",
-            "Goverment support of autonomous cars dev",
-        )
+            "Systems to prevent Traffic Jams",
+            "Less Polution"
+        ]
+        outer_environ = [
+            "Ecology",
+            "Market",
+            "Social Acceptance",
+            "Technologies",
+            "Legal System",
+            "--Jobs--"
+        ]
 
-        self.threats = (
-            "High production price",
-            "High service price",
-            "Not enough qualified mechanics",
-            "Bad road cover surface",
-            "Not ordinary behaivor of some road users",
-            "Rejection by people",
-            "Hacking, confidentiality problems",
-            "Increased scam interest",
-            "Job abolition",
-            "Inadequacy of legal system",
-        )
-        self.so_letters = None
-        self.st_letters = None
-        self.wo_letters = None
-        self.wt_letters = None
+        goal = [
+            "Life Safety",
+            "Data Safety",
+            "Independancy on Man",
+            "Low Production Price",
+            "High Sales",
+        ]
+        self.actions = actions
 
-    def swot(self):
-        strengths_letters = deambiguos(self.strengths, 'S')
-        weaknesses_letters = deambiguos(self.weaknesses, 'W')
-        opportunities_letters = deambiguos(self.opportunities, 'O')
-        threats_letters = deambiguos(self.threats, 'T')
+    def form_connections(self):
 
-        st = pd.DataFrame(index=self.strengths, columns=self.threats)
-        so = pd.DataFrame(index=self.strengths, columns=self.opportunities)
-        wt = pd.DataFrame(index=self.weaknesses, columns=self.threats)
-        wo = pd.DataFrame(index=self.weaknesses, columns=self.opportunities)
-        self.st_letters = pd.DataFrame(index=strengths_letters, columns=threats_letters)
-        self.so_letters = pd.DataFrame(index=strengths_letters, columns=opportunities_letters)
-        self.wt_letters = pd.DataFrame(index=weaknesses_letters, columns=threats_letters)
-        self.wo_letters = pd.DataFrame(index=weaknesses_letters, columns=opportunities_letters)
 
-        st['High production price'] = [0.0, 0.09, 0.4, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2, 0.6, ]
-        st['High service price'] = [0.4, 0.3, 0.4, 0.4, 0.1, 0.2, 0.8, 0.0, 0.1, 0.0, 0.0, 0.2, ]
-        st['Not enough qualified mechanics'] = [0.0, 0.5, 0.4, 0.1, 0.8, 0.0, 0.65, 0.0, 0.33, 0.0, 0.0, 0.0, ]
-        st['Bad road cover surface'] = [0.4, 0.7, 0.6, 0.45, 0.75, 0.0, 0.8, 0.5, 0.0, 0.1, 0.0, 0.3, ]
-        st['Not ordinary behaivor of some road users'] = [0.8, 0.9, 0.6, 1.0, 0.05, 0.0, 0.3, 0.0, 0.0, 0.5, 0.0, 0.0, ]
-        st['Rejection by people'] = [0.0, .95, 0.0, 0.8, 0.0, 0.25, .9, 0.17, 0.5, 0.8, 0.05, .84, ]
-        st['Hacking, confidentiality problems'] = [.75, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.2, 0.0, 0.0, 0.0, ]
-        st['Increased scam interest'] = [.75, 0.2, 0.0, 0.0, 0.0, 0.12, 0.1, 0.4, 0.3, 0.0, 0.0, 0.7, ]
-        st['Job abolition'] = [0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.3, 0.0, 0.0, 0.7, ]
-        st['Inadequacy of legal system'] = [0.0, 0.4, 0.5, 0.2, 0.32, 0.0, 0.98, 0.0, 0.0, 0.28, 0.0, 0.0, ]
+        self.connections = pd.read_csv("final_cognitive.csv").set_index("Unnamed: 0")
+        #print(self.connections)
 
-        self.st_letters['T1'] = [0.0, 0.09, 0.4, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2, 0.6, ]
-        self.st_letters['T2'] = [0.4, 0.3, 0.4, 0.4, 0.1, 0.2, 0.8, 0.0, 0.1, 0.0, 0.0, 0.2, ]
-        self.st_letters['T3'] = [0.0, 0.5, 0.4, 0.1, 0.8, 0.0, 0.65, 0.0, 0.33, 0.0, 0.0, 0.0, ]
-        self.st_letters['T4'] = [0.4, 0.7, 0.6, 0.45, 0.75, 0.0, 0.8, 0.5, 0.0, 0.1, 0.0, 0.3, ]
-        self.st_letters['T5'] = [0.8, 0.9, 0.6, 1.0, 0.05, 0.0, 0.3, 0.0, 0.0, 0.5, 0.0, 0.0, ]
-        self.st_letters['T6'] = [0.0, .95, 0.0, 0.8, 0.0, 0.25, .9, 0.17, 0.5, 0.8, 0.05, .84, ]
-        self.st_letters['T7'] = [.75, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.2, 0.0, 0.0, 0.0, ]
-        self.st_letters['T8'] = [.75, 0.2, 0.0, 0.0, 0.0, 0.12, 0.1, 0.4, 0.3, 0.0, 0.0, 0.7, ]
-        self.st_letters['T9'] = [0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.3, 0.0, 0.0, 0.7, ]
-        self.st_letters['T10'] = [0.0, 0.4, 0.5, 0.2, 0.32, 0.0, 0.98, 0.0, 0.0, 0.28, 0.0, 0.0, ]
-        st.style.background_gradient(cmap='Oranges', axis=None)
-
-        so["E-maps of road signs"] = [0.5, 0.4, 0.8, 0.9, 0.0, 0.2, 0.7, 0.9, 0.0, 0.3, 0.8, 0.0]
-        so["Vehicle to vehicle connection"] = [0.0, 0.2, 0.4, 0.55, 0.0, 0.0, 0.25, 0.25, 0.2, 0.7, 0.0, 0.0]
-        so["More passanger places (no driver needed)"] = [0.99, 0.8, 0.6, 0.8, 0.2, 0.8, 0.92, 0.9, 0.5, 0.93, 0.4, 0.8]
-        so["System to prevent trafic jams"] = [0.86, 0.97, 0.9, 0.85, 0.15, 0.45, 0.85, 1.0, 0.2, 0.1, 0.0, 0.7]
-        so["Alternative energy usage"] = [0.0, 0.0, 0.3, 0.2, 0.0, 0.0, 0.35, 0.28, 0.95, 0.2, 0.0, 0.1]
-        so["New powerful computer vision technologies"] = [0.41, 0.0, 0.31, 0.7, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.75,
-                                                           0.0]
-        so["Cars technologies with less polution"] = [0.8, 0.0, 0.69, 0.54, 0.0, 0.2, 0.3, 0.75, 0.88, 0.0, 0.0, 0.62]
-        so["High efficency engines"] = [0.8, 0.0, 0.5, 0.2, 0.3, 0.0, 0.21, 0.2, 0.8, 0.0, 0.0, 0.0]
-        so["High demand on cars"] = [0.9, 0.85, 0.1, 0.6, 0.07, 0.36, 0.28, 0.65, 0.7, 0.0, 0.42, 0.9]
-        so["Goverment support of autonomous cars dev"] = [0.65, 0.95, 0.8, 0.75, 0.0, 0.39, 1.0, 0.0, 0.5, 0.8, 0.0,
-                                                          0.59]
-
-        self.so_letters['O1'] = [0.5, 0.4, 0.8, 0.9, 0.0, 0.2, 0.7, 0.9, 0.0, 0.3, 0.8, 0.0]
-        self.so_letters['O2'] = [0.0, 0.2, 0.4, 0.55, 0.0, 0.0, 0.25, 0.25, 0.2, 0.7, 0.0, 0.0]
-        self.so_letters['O3'] = [0.99, 0.8, 0.6, 0.8, 0.2, 0.8, 0.92, 0.9, 0.5, 0.93, 0.4, 0.8]
-        self.so_letters['O4'] = [0.86, 0.97, 0.9, 0.85, 0.15, 0.45, 0.85, 1.0, 0.2, 0.1, 0.0, 0.7]
-        self.so_letters['O5'] = [0.0, 0.0, 0.3, 0.2, 0.0, 0.0, 0.35, 0.28, 0.95, 0.2, 0.0, 0.1]
-        self.so_letters['O6'] = [0.41, 0.0, 0.31, 0.7, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.75, 0.0]
-        self.so_letters['O7'] = [0.8, 0.0, 0.69, 0.54, 0.0, 0.2, 0.3, 0.75, 0.88, 0.0, 0.0, 0.62]
-        self.so_letters['O8'] = [0.8, 0.0, 0.5, 0.2, 0.3, 0.0, 0.21, 0.2, 0.8, 0.0, 0.0, 0.0]
-        self.so_letters['O9'] = [0.9, 0.85, 0.1, 0.6, 0.07, 0.36, 0.28, 0.65, 0.7, 0.0, 0.42, 0.9]
-        self.so_letters['O10'] = [0.65, 0.95, 0.8, 0.75, 0.0, 0.39, 1.0, 0.0, 0.5, 0.8, 0.0, 0.59]
-        so.style.background_gradient(cmap='Greens', axis=None)
-
-        wt['High production price'] = [0.1, 0.85, 0.33, 0.4, 0.0, 0.5, 0.4, 0.0, 0.0, 0.6, 0.9, 0.0, ]
-        wt['High service price'] = [0.7, 0.0, 0.4, 0.0, 0.0, 0.0, 0.2, 0.0, 0.0, 0.35, 0.23, 0.1, ]
-        wt['Not enough qualified mechanics'] = [0.65, 0.0, 0.25, 0.0, 0.1, 0.0, 0.3, 0.2, 0.0, 0.6, 0.44, 0.0, ]
-        wt['Bad road cover surface'] = [0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.0, 0.15, 0.3, 0.1, ]
-        wt['Not ordinary behaivor of some road users'] = [0.69, 0.9, 0.02, 0.95, 1.0, 0.0, 0.67, 0.8, 0.75, 0.6, 0.0,
-                                                          0.8, ]
-        wt['Rejection by people'] = [0.0, 0.0, 0.0, 0.6, 0.85, 0.45, 0.0, 0.1, 1.0, 0.34, 0.18, 0.59, ]
-        wt['Hacking, confidentiality problems'] = [0.0, 0.0, 0.0, 0.0, 0.1, 0.99, 0.2, 0.0, 0.35, 0.5, 0.0, 0.2, ]
-        wt['Increased scam interest'] = [0.0, 0.0, 0.0, 0.1, 0.4, 0.75, 0.35, 0.0, 0.4, 0.65, 0.95, 0.15, ]
-        wt['Job abolition'] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.1, 0.1, ]
-        wt['Inadequacy of legal system'] = [0.0, 0.0, 0.0, 0.7, 0.92, 0.65, 0.0, 0.25, 1.0, 0.35, 0.25, 0.4, ]
-
-        self.wt_letters['T1'] = [0.1, 0.85, 0.33, 0.4, 0.0, 0.5, 0.4, 0.0, 0.0, 0.6, 0.9, 0.0, ]
-        self.wt_letters['T2'] = [0.7, 0.0, 0.4, 0.0, 0.0, 0.0, 0.2, 0.0, 0.0, 0.35, 0.23, 0.1, ]
-        self.wt_letters['T3'] = [0.65, 0.0, 0.25, 0.0, 0.1, 0.0, 0.3, 0.2, 0.0, 0.6, 0.44, 0.0, ]
-        self.wt_letters['T4'] = [0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.0, 0.15, 0.3, 0.1, ]
-        self.wt_letters['T5'] = [0.69, 0.9, 0.02, 0.95, 1.0, 0.0, 0.67, 0.8, 0.75, 0.6, 0.0, 0.8, ]
-        self.wt_letters['T6'] = [0.0, 0.0, 0.0, 0.6, 0.85, 0.45, 0.0, 0.1, 1.0, 0.34, 0.18, 0.59, ]
-        self.wt_letters['T7'] = [0.0, 0.0, 0.0, 0.0, 0.1, 0.99, 0.2, 0.0, 0.35, 0.5, 0.0, 0.2, ]
-        self.wt_letters['T8'] = [0.0, 0.0, 0.0, 0.1, 0.4, 0.75, 0.35, 0.0, 0.4, 0.65, 0.95, 0.15, ]
-        self.wt_letters['T9'] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.1, 0.1, ]
-        self.wt_letters['T10'] = [0.0, 0.0, 0.0, 0.7, 0.92, 0.65, 0.0, 0.25, 1.0, 0.35, 0.25, 0.4, ]
-        wt.style.background_gradient(cmap='Reds', axis=None)
-
-        wo["E-maps of road signs"] = [0.0, 0.9, 0.2, 0.0, 0.05, 0.3, 0.8, 0.1, 0.0, 0.48, 0.75, 0.0]
-        wo["Vehicle to vehicle connection"] = [0.1, 0.96, 0.3, 0.0, 0.0, 0.7, 1.0, 0.83, 0.22, 0.56, 0.8, 0.0]
-        wo["More passanger places (no driver needed)"] = [0.3, 0.7, 0.0, 0.0, 0.8, 0.0, 0.9, 0.0, 0.76, 0.7, 0.5, 0.1]
-        wo["System to prevent trafic jams"] = [0.2, 0.8, 0.08, 0.6, 0.3, 0.2, 0.7, 0.6, 0.4, 0.4, 0.83, 0.0]
-        wo["Alternative energy usage"] = [0.7, 0.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.13, 0.35, 0.0]
-        wo["New powerful computer vision technologies"] = [0.22, 0.9, 0.65, 0.4, 0.35, 0.12, 0.0, 0.08, 0.0, 0.5, 0.4,
-                                                           0.0]
-        wo["Cars technologies with less polution"] = [0.5, 0.0, 0.37, 0.0, 0.0, 0.0, 0.3, 0.0, 0.2, 0.21, 0.12, 0.0]
-        wo["High efficency engines"] = [0.43, 0.0, 0.25, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.1, 0.0, 0.0]
-        wo["High demand on cars"] = [0.3, 0.0, 0.5, 0.6, 0.25, 0.4, 0.15, 0.1, 0.39, 0.7, 0.9, 0.0]
-        wo["Goverment support of autonomous cars dev"] = [0.0, 0.37, 0.3, 0.3, 0.9, 0.6, 0.1, 0.09, 0.99, 0.65, 0.0,
-                                                          0.39]
-
-        self.wo_letters['O1'] = [0.0, 0.9, 0.2, 0.0, 0.05, 0.3, 0.8, 0.1, 0.0, 0.48, 0.75, 0.0]
-        self.wo_letters['O2'] = [0.1, 0.96, 0.3, 0.0, 0.0, 0.7, 1.0, 0.83, 0.22, 0.56, 0.8, 0.0]
-        self.wo_letters['O3'] = [0.3, 0.7, 0.0, 0.0, 0.8, 0.0, 0.9, 0.0, 0.76, 0.7, 0.5, 0.1]
-        self.wo_letters['O4'] = [0.2, 0.8, 0.08, 0.6, 0.3, 0.2, 0.7, 0.6, 0.4, 0.4, 0.83, 0.0]
-        self.wo_letters['O5'] = [0.7, 0.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.13, 0.35, 0.0]
-        self.wo_letters['O6'] = [0.22, 0.9, 0.65, 0.4, 0.35, 0.12, 0.0, 0.08, 0.0, 0.5, 0.4, 0.0]
-        self.wo_letters['O7'] = [0.5, 0.0, 0.37, 0.0, 0.0, 0.0, 0.3, 0.0, 0.2, 0.21, 0.12, 0.0]
-        self.wo_letters['O8'] = [0.43, 0.0, 0.25, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.1, 0.0, 0.0]
-        self.wo_letters['O9'] = [0.3, 0.0, 0.5, 0.6, 0.25, 0.4, 0.15, 0.1, 0.39, 0.7, 0.9, 0.0]
-        self.wo_letters['O10'] = [0.0, 0.37, 0.3, 0.3, 0.9, 0.6, 0.1, 0.09, 0.99, 0.65, 0.0, 0.39]
-
-        wo.style.background_gradient(cmap='Blues', axis=None)
-
-        swot = pd.concat([pd.concat([st, so], axis=1), pd.concat([wt, wo], axis=1)], axis=0)
-        swot_letteres = pd.concat((pd.concat((self.st_letters, self.so_letters), axis=1), pd.concat((self.wt_letters,
-                                                                                                     self.wo_letters),
-                                                                                                    axis=1)), axis=0)
-
-        return swot, swot_letteres
+        return self.connections
 
 
 # networkxplotter.py module
@@ -548,38 +427,30 @@ def form_subgraphs(clusters):
 
 class Graph(object):
     def __init__(self, name):
+        #print("Let me create that starnge GRAPH boi!")
         self.name = name
         self.nodes = []
         self.A = []
 
-    def from_pandas(self, swot, sw, s_count):
+    def from_pandas(self, table):
+        data = table.form_connections()
         nodes = dict()
 
-        for index in swot.index:
-            value = 0
-            row = swot.loc[index]
-            for i in range(len(row)):
-                value = value + row[i]
-            nodes[index] = Node(index, value)
+        for index in data.index:
+            if index not in table.actions:
+                nodes[index] = Node(index, 0)
+            else:
+                nodes[index] = Node(index, 0)
 
-        for column in swot.columns:
-            value = 0
-            col = swot[column]
-            for i in range(len(col)):
-                value = value + col[i] if i < s_count else value - col[i]
-            nodes[column] = Node(column, value)
 
-        for index in swot.index:
-            for column in swot.columns:
-                if swot.loc[index][column] != 0:
-                    nodes[index].set_weight([swot.loc[index][column], nodes[column]])
-                    nodes[column].set_weight([swot.loc[index][column], nodes[index]])
 
-        for index in sw.index:
-            for column in sw.columns:
-                nodes[index].set_weight([sw.loc[index][column], nodes[column]]) \
-                    if sw.loc[index][column] != 0 else 0
 
+        for index in data.index:
+            for column in data.columns:
+                if data.loc[index][column] != 0:
+                    nodes[index].set_weight([data.loc[index][column], nodes[column]])
+
+        print("kek")
         self.set_nodes(list(nodes.values()))
 
     def clear(self):
@@ -625,30 +496,46 @@ class Graph(object):
         for node in self.nodes:
             node.set_value(nodes_values[node])
 
-    def send_impulses(self, impulse, duration, overall_duration_multiplier=10):
+    def send_impulses(self, impulse, duration, overall_duration_multiplier=5):
         previous = np.zeros((len(self.nodes), 1))
         current = np.array([[node.value] for node in self.nodes])
+        graphical = []
+
+        for i in range(impulse.shape[0]):
+            self.nodes[i].set_value(1) if impulse[i] != 0 else 0
+
         for i in range(duration * overall_duration_multiplier):
-            impulse = impulse if i < duration else np.zeros((impulse.shape[0], 1))
+
+            impulse = impulse if i < duration * overall_duration_multiplier else np.zeros((impulse.shape[0], 1))
+
             new = current + np.array(self.A).T @ (current - previous) + impulse
-            nodes_values = {self.nodes[i]: current[i, 0] for i in range(len(self.nodes))}
+
+            nodes_values = {self.nodes[i]: current[i, 0] / np.linalg.norm(current, np.inf)  for i in range(len(self.nodes))}
+
             previous = current
             current = new
             self.update_values(nodes_values)
+            graphical.append(current)
 
-    def search_cycles(self, verbose=False):
+        plt.plot
+        normalizer = sum(list(map(lambda node: node.value, self.nodes[-5:])))
+
+        for i in range(1, 6):
+            self.nodes[-i].set_value(self.nodes[-i].value / normalizer)
+
+    def search_cycles(self, limit=3, verbose=False):
         cycles = set()
         for node in self.nodes:
             layer = 0
             vertexes = dict()
-            vertexes[layer] = {node}
-            while True:
+            vertexes[layer] = set([node])
+            while layer < min(limit, len(self.nodes)):
                 nexts = set()
                 previous_layers = reduce(lambda x, y: x.union(y), list(vertexes.values())[: layer]) if layer > 0 else []
                 for vertex in vertexes[layer]:
-                    if vertex not in previous_layers:
-                        for next_vertex in vertex.connections.keys():
-                            nexts.add(next_vertex)
+                    for next_vertex in vertex.connections.keys():
+                        nexts.add(next_vertex)
+
                 layer += 1
                 if nexts != set():
                     vertexes[layer] = nexts
@@ -656,24 +543,25 @@ class Graph(object):
                     break
 
             for length in range(1, len(vertexes)):
-                if node in vertexes[length] and length > 2:
-                    chains = np.array([[1, node]])
+                if node in vertexes[length]:
+                    vertexes[length].remove(node)
+                    chains = np.array([[0., node]])
                     for layers in reversed(range(length)):
                         chain = copy(chains)
                         for nodes in vertexes[layers]:
                             for i in range(len(chain[:, -1])):
-                                if chain[i][-1] in nodes.connections.keys():
+                                if chain[i][-1] in nodes.connections.keys() and chain[i][-1] != nodes:
                                     new_chain = np.append(chain[i], nodes)
                                     new_chain[0] = chains[i][0] * np.sign(nodes.connections[chain[i][-1]])
 
                                     if len(chain[0]) == len(chains[0]):
-                                        chains = np.hstack((chains, [[0]] * chains.shape[0]))
+                                        chains = np.hstack((chains, [[0] for k in range(chains.shape[0])]))
                                     chains = np.vstack((chains, new_chain))
                     for arr in chains:
                         temp = arr[1:][arr[1:] != 0]
                         if temp[0] == temp[-1] and len(temp) > 1:
-                            cycles.add((arr[0], tuple(temp)))
-                    break
+                            cycles.add((np.round(arr[0], 5), tuple(temp[::-1])))
+
         if verbose:
             for cycle in cycles:
                 print("\nWeight = ", cycle[0])
@@ -974,16 +862,14 @@ class UI(QDialog):
         self.plot_graph()
 
     def show_swot_graph(self):
-        swot = Swot()
-        sswat = swot.swot()[0]
-        sw_table = form_sw_table(sswat, 10)
+        table = Self_Driving_Car_Map()
         self.graph = Graph("SWOT")
-        self.graph.from_pandas(sswat, sw_table, 12)
+        self.graph.from_pandas(table)
         self.create_graph_html()
         self.plot_graph()
 
     def create_graph_html(self):
-        self.netplot = NetworkXPlotter(self.graph)
+        self.netplot = NetworkXPlotter(self.graph, layout = 'random')
         if self.switch_color_mode_button.isChecked():
             self.netplot.plot(
                 colorscale="sunset",
@@ -1050,6 +936,7 @@ class UI(QDialog):
 
         def send_data():
             self.graph.form_connection_matrix()
+            print(data_for_calculations.values())
             self.graph.send_impulses(np.array(list(map(lambda x: float(x), data_for_calculations.values()))),
                                      int(dialog.impulse_duration.text()))
             self.create_graph_html()
