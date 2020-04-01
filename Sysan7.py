@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from functools import reduce
 from copy import copy
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 from PyQt5.QtWidgets import QApplication, QLineEdit, QDialog, \
     QHBoxLayout, QGridLayout, QStyleFactory, QCheckBox, QPushButton, QTabWidget, QTextEdit, QComboBox
 from PyQt5.QtGui import QPalette, QColor, QIcon
@@ -15,8 +17,7 @@ import sys
 
 # create_swot_table.py module
 
-
-class Self_Driving_Car_Map:
+class SelfDrivingCarMap:
     def __init__(self):
         actions = [
             "Invest into ML Technologies",
@@ -41,49 +42,17 @@ class Self_Driving_Car_Map:
             "Develop Better GPS",
             "Increase Social Awareness",
         ]
-        inner_environ = [
-            "Rational Fuel Usage",
-            "Adequate Price",
-            "State-of-the-Art Software",
-            "Impoved Hardware",
-            "Confidentiality Problem",
-            "Vehicle to Vehicle Connection",
-            "GPS/Internet quality",
-            "Systems to prevent Traffic Jams",
-            "Less Polution"
-        ]
-        outer_environ = [
-            "Ecology",
-            "Market",
-            "Social Acceptance",
-            "Technologies",
-            "Legal System",
-            "--Jobs--"
-        ]
-
-        goal = [
-            "Life Safety",
-            "Data Safety",
-            "Independancy on Man",
-            "Low Production Price",
-            "High Sales",
-        ]
         self.actions = actions
+        self.connections = None
 
     def form_connections(self):
-
-
         self.connections = pd.read_csv("final_cognitive.csv").set_index("Unnamed: 0")
-        #print(self.connections)
-
         return self.connections
 
 
 # networkxplotter.py module
 class NetworkXPlotter(object):
     """Class for casting graph to NetworkX graph and plotting it."""
-
-    # def __init__(self, custom_g, layout="spring", dim=2):
     def __init__(self, custom_g, layout="circular", dim=2):
         """
         Args:
@@ -427,7 +396,7 @@ def form_subgraphs(clusters):
 
 class Graph(object):
     def __init__(self, name):
-        #print("Let me create that starnge GRAPH boi!")
+        # print("Let me create that starnge GRAPH boi!")
         self.name = name
         self.nodes = []
         self.A = []
@@ -442,15 +411,10 @@ class Graph(object):
             else:
                 nodes[index] = Node(index, 0)
 
-
-
-
         for index in data.index:
             for column in data.columns:
                 if data.loc[index][column] != 0:
                     nodes[index].set_weight([data.loc[index][column], nodes[column]])
-
-        print("kek")
         self.set_nodes(list(nodes.values()))
 
     def clear(self):
@@ -498,8 +462,8 @@ class Graph(object):
 
     def send_impulses(self, impulse, duration, overall_duration_multiplier=5):
         previous = np.zeros((len(self.nodes), 1))
-        current = np.array([[node.value] for node in self.nodes])
-        graphical = []
+        current = np.zeros((len(self.nodes), 1))
+        graphical = {node.name: [] for node in self.nodes}
 
         for i in range(impulse.shape[0]):
             self.nodes[i].set_value(1) if impulse[i] != 0 else 0
@@ -510,28 +474,34 @@ class Graph(object):
 
             new = current + np.array(self.A).T @ (current - previous) + impulse
 
-            nodes_values = {self.nodes[i]: current[i, 0] / np.linalg.norm(current, np.inf)  for i in range(len(self.nodes))}
+            nodes_values = {self.nodes[i]: current[i, 0] / np.linalg.norm(current, np.inf)
+                            for i in range(len(self.nodes))}
 
             previous = current
             current = new
+
+            for index in range(len(self.nodes)):
+                graphical[self.nodes[index].name].append(nodes_values[self.nodes[index]])
+
             self.update_values(nodes_values)
-            graphical.append(current)
 
-        plt.plot
-        normalizer = sum(list(map(lambda node: node.value, self.nodes[-5:])))
 
-        for i in range(1, 6):
-            self.nodes[-i].set_value(self.nodes[-i].value / normalizer)
+        #normalizer = sum(list(map(lambda node: node.value, self.nodes[-5:])))
+
+
+        #for i in range(1, 6):
+        #    self.nodes[-i].set_value(self.nodes[-i].value / normalizer)
+
+        return graphical
 
     def search_cycles(self, limit=3, verbose=False):
         cycles = set()
         for node in self.nodes:
             layer = 0
             vertexes = dict()
-            vertexes[layer] = set([node])
+            vertexes[layer] = {node}
             while layer < min(limit, len(self.nodes)):
                 nexts = set()
-                previous_layers = reduce(lambda x, y: x.union(y), list(vertexes.values())[: layer]) if layer > 0 else []
                 for vertex in vertexes[layer]:
                     for next_vertex in vertex.connections.keys():
                         nexts.add(next_vertex)
@@ -555,7 +525,7 @@ class Graph(object):
                                     new_chain[0] = chains[i][0] * np.sign(nodes.connections[chain[i][-1]])
 
                                     if len(chain[0]) == len(chains[0]):
-                                        chains = np.hstack((chains, [[0] for k in range(chains.shape[0])]))
+                                        chains = np.hstack((chains, [[0]] * chains.shape[0]))
                                     chains = np.vstack((chains, new_chain))
                     for arr in chains:
                         temp = arr[1:][arr[1:] != 0]
@@ -585,15 +555,31 @@ class Graph(object):
             return False
 
 
+class Canvas(FigureCanvas):
+    def __init__(self, parent=None, width=5, height=4, dpi=100, title=None):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+        self.axes.set_title(title)
+        self.compute_initial_figure()
+        FigureCanvas.__init__(self, fig)
+        self.setParent(parent)
+
+    def compute_initial_figure(self):
+        pass
+
+
 class UI(QDialog):
     def __init__(self):
         super(UI, self).__init__()
-
+        self.graphical = None
         # top_box
         self.top_box = QHBoxLayout()
 
         self.switch_color_mode_button = QCheckBox("Light")
         self.switch_color_mode_button.setChecked(False)
+
+        self.plot_scenario_dynamics_button = QPushButton("Plot scenario dynamics")
+        self.plot_scenario_dynamics_button.setFlat(True)
 
         self.send_impulse_button = QPushButton("Send impulse")
         self.send_impulse_button.setFlat(True)
@@ -609,6 +595,7 @@ class UI(QDialog):
 
         self.top_box.addWidget(self.switch_color_mode_button)
         self.top_box.addStretch(1)
+        self.top_box.addWidget(self.plot_scenario_dynamics_button)
         self.top_box.addWidget(self.send_impulse_button)
         self.top_box.addWidget(self.show_swot_button)
         self.top_box.addWidget(self.generate_random_graph_button)
@@ -724,6 +711,7 @@ class UI(QDialog):
         self.show_swot_button.clicked.connect(self.show_swot_graph)
         self.reset_outputs_button.clicked.connect(self.reset_outputs)
         self.alter_connection_button.clicked.connect(self.alter_connection)
+        self.plot_scenario_dynamics_button.clicked.connect(self.plot_scenario_dynamis)
 
     def change_palette(self):
         dark_palette = QPalette()
@@ -862,14 +850,14 @@ class UI(QDialog):
         self.plot_graph()
 
     def show_swot_graph(self):
-        table = Self_Driving_Car_Map()
+        table = SelfDrivingCarMap()
         self.graph = Graph("SWOT")
         self.graph.from_pandas(table)
         self.create_graph_html()
         self.plot_graph()
 
     def create_graph_html(self):
-        self.netplot = NetworkXPlotter(self.graph, layout = 'random')
+        self.netplot = NetworkXPlotter(self.graph, layout='circular')
         if self.switch_color_mode_button.isChecked():
             self.netplot.plot(
                 colorscale="sunset",
@@ -936,9 +924,9 @@ class UI(QDialog):
 
         def send_data():
             self.graph.form_connection_matrix()
-            print(data_for_calculations.values())
-            self.graph.send_impulses(np.array(list(map(lambda x: float(x), data_for_calculations.values()))),
+            self.graphical = self.graph.send_impulses(np.array(list(map(lambda x: float(x), data_for_calculations.values()))),
                                      int(dialog.impulse_duration.text()))
+            self.graphical = np.array([dynamic for dynamic in self.graphical.values()]).T
             self.create_graph_html()
             self.plot_graph()
             dialog.close()
@@ -974,6 +962,59 @@ class UI(QDialog):
         else:
             self.plot_graph("<!DOCTYPE html><html><body style='background-color:grey;'></body></html>")
         self.plot_widget.setFixedHeight(500)
+
+    def plot_scenario_dynamis(self):
+        dialog = QDialog(self)
+        data_for_calculations = {node.name: False for node in self.graph.nodes}
+        dialog.setWindowIcon(QIcon("icon.jpg"))
+        dialog.setWindowTitle("Scenario dynamics")
+        dialog.setWindowIconText("Scenario dynamics")
+
+        dialog.mainLayout = QGridLayout()
+
+        dialog.select_nodes_combobox = QComboBox()
+        dialog.select_nodes_combobox.addItems([node.name for node in self.graph.nodes])
+
+        dialog.text_box = QTextEdit("")
+        dialog.text_box.setPlaceholderText("Here will be displayed a list of added vertexes")
+
+        dialog.append_vertex_button = QPushButton("Append vertex")
+        dialog.append_vertex_button.setFlat(True)
+
+        dialog.plot_dynamics_button = QPushButton("Plot")
+        dialog.plot_dynamics_button.setFlat(True)
+
+        dialog.mainLayout.addWidget(dialog.select_nodes_combobox, 0, 0, 1, 3)
+        dialog.mainLayout.addWidget(dialog.append_vertex_button, 0, 3, 1, 1)
+        dialog.mainLayout.addWidget(dialog.text_box, 1, 0, 1, 5)
+        dialog.mainLayout.addWidget(dialog.plot_dynamics_button, 0, 4, 1, 1)
+
+        def plot_dynamics():
+            plot_dialog = QDialog(dialog)
+            plot_dialog.canvas = Canvas(title="test")
+            plot_dialog.canvas.axes.clear()
+            plot_dialog.canvas.axes.plot(np.linspace(0, 1, len(list(self.graphical.values())[0])), self.graphical, lw=1, color='blue')
+            plot_dialog.canvas.draw()
+
+            layout = QGridLayout()
+            layout.addWidget(plot_dialog.canvas)
+
+            plot_dialog.setLayout(layout)
+            plot_dialog.resize(800, 500)
+            plot_dialog.show()
+            #dialog.close()
+
+        def append_data():
+            dialog.text_box.append(str(dialog.select_nodes_combobox.currentText()))
+            data_for_calculations[dialog.select_nodes_combobox.currentText()] = True
+
+        dialog.plot_dynamics_button.clicked.connect(plot_dynamics)
+        dialog.append_vertex_button.clicked.connect(append_data)
+
+        dialog.setLayout(dialog.mainLayout)
+        dialog.resize(500, 200)
+
+        dialog.show()
 
 
 if __name__ == "__main__":
