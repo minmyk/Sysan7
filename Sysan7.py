@@ -462,8 +462,8 @@ class Graph(object):
 
     def send_impulses(self, impulse, duration, overall_duration_multiplier=5):
         previous = np.zeros((len(self.nodes), 1))
-        current = np.array([[node.value] for node in self.nodes])
-        graphical = []
+        current = np.zeros((len(self.nodes), 1))
+        graphical = {node.name: [] for node in self.nodes}
 
         for i in range(impulse.shape[0]):
             self.nodes[i].set_value(1) if impulse[i] != 0 else 0
@@ -479,13 +479,20 @@ class Graph(object):
 
             previous = current
             current = new
+
+            for index in range(len(self.nodes)):
+                graphical[self.nodes[index].name].append(nodes_values[self.nodes[index]])
+
             self.update_values(nodes_values)
-            graphical.append(current)
 
-        normalizer = sum(list(map(lambda node: node.value, self.nodes[-5:])))
 
-        for i in range(1, 6):
-            self.nodes[-i].set_value(self.nodes[-i].value / normalizer)
+        #normalizer = sum(list(map(lambda node: node.value, self.nodes[-5:])))
+
+
+        #for i in range(1, 6):
+        #    self.nodes[-i].set_value(self.nodes[-i].value / normalizer)
+
+        return graphical
 
     def search_cycles(self, limit=3, verbose=False):
         cycles = set()
@@ -564,7 +571,7 @@ class Canvas(FigureCanvas):
 class UI(QDialog):
     def __init__(self):
         super(UI, self).__init__()
-
+        self.graphical = None
         # top_box
         self.top_box = QHBoxLayout()
 
@@ -917,8 +924,9 @@ class UI(QDialog):
 
         def send_data():
             self.graph.form_connection_matrix()
-            self.graph.send_impulses(np.array(list(map(lambda x: float(x), data_for_calculations.values()))),
+            self.graphical = self.graph.send_impulses(np.array(list(map(lambda x: float(x), data_for_calculations.values()))),
                                      int(dialog.impulse_duration.text()))
+            self.graphical = np.array([dynamic for dynamic in self.graphical.values()]).T
             self.create_graph_html()
             self.plot_graph()
             dialog.close()
@@ -983,10 +991,9 @@ class UI(QDialog):
 
         def plot_dynamics():
             plot_dialog = QDialog(dialog)
-
             plot_dialog.canvas = Canvas(title="test")
             plot_dialog.canvas.axes.clear()
-            plot_dialog.canvas.axes.plot(np.linspace(0, 1, 10), np.linspace(0, 1, 10), lw=1, color='blue')
+            plot_dialog.canvas.axes.plot(np.linspace(0, 1, len(list(self.graphical.values())[0])), self.graphical, lw=1, color='blue')
             plot_dialog.canvas.draw()
 
             layout = QGridLayout()
