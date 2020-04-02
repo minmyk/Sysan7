@@ -415,6 +415,7 @@ class Graph(object):
             for column in data.columns:
                 if data.loc[index][column] != 0:
                     nodes[index].set_weight([data.loc[index][column], nodes[column]])
+
         self.set_nodes(list(nodes.values()))
 
     def clear(self):
@@ -474,9 +475,6 @@ class Graph(object):
 
             new = current + np.array(self.A).T @ (current - previous) + impulse
 
-            nodes_values = {self.nodes[i]: current[i, 0] / np.linalg.norm(current, np.inf)
-                            for i in range(len(self.nodes))}
-
             previous = current
             current = new
             normalizer = sum(list(map(lambda node: node.value, self.nodes[-5:])))
@@ -484,11 +482,21 @@ class Graph(object):
             for j in range(1, 6):
                 self.nodes[-j].set_value(self.nodes[-j].value / normalizer)
 
-            for index in range(len(self.nodes)):
-                graphical[self.nodes[index].name].append(nodes_values[self.nodes[index]])
+            nodes_values = {self.nodes[i]: abs(current[i, 0] / np.linalg.norm(current, np.inf))
+                            for i in range(len(self.nodes))}
+
+            normalizer = sum(list(map(lambda node: node.value, self.nodes[-5:])))
+
+            normalizer = normalizer if normalizer != 0 else 1
 
             self.update_values(nodes_values)
 
+
+            for j in range(1, 6):
+                nodes_values[self.nodes[-j - 1]] = self.nodes[-j - 1].value / normalizer
+
+            for index in range(len(self.nodes)):
+                graphical[self.nodes[index].name].append(nodes_values[self.nodes[index]])
         return graphical
 
     def search_cycles(self, limit=3, verbose=False):
