@@ -477,6 +477,10 @@ class Graph(object):
 
             previous = current
             current = new
+            normalizer = sum(list(map(lambda node: node.value, self.nodes[-5:])))
+
+            for j in range(1, 6):
+                self.nodes[-j].set_value(self.nodes[-j].value / normalizer)
 
             nodes_values = {self.nodes[i]: abs(current[i, 0] / np.linalg.norm(current, np.inf))
                             for i in range(len(self.nodes))}
@@ -493,7 +497,6 @@ class Graph(object):
 
             for index in range(len(self.nodes)):
                 graphical[self.nodes[index].name].append(nodes_values[self.nodes[index]])
-
         return graphical
 
     def search_cycles(self, limit=3, verbose=False):
