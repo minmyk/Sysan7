@@ -16,6 +16,31 @@ import sys
 
 
 # create_swot_table.py module
+inner_environ = [
+    "Rational Fuel Usage",
+    "Adequate Price",
+    "State-of-the-Art Software",
+    "Impoved Hardware",
+    "Confidentiality Problem",
+    "Vehicle to Vehicle Connection",
+    "GPS/Internet quality",
+    "Systems to prevent Traffic Jams",
+    "Less Polution"]
+outer_environ = [
+    "Ecology",
+    "Market",
+    "Social Acceptance",
+    "Technologies",
+    "Legal System",
+    "--Jobs--"]
+goal = [
+    "Life Safety",
+    "Data Safety",
+    "Independancy on Man",
+    "Low Production Price",
+    "High Sales"
+]
+
 
 class SelfDrivingCarMap:
     def __init__(self):
@@ -57,7 +82,7 @@ class NetworkXPlotter(object):
         """
         Args:
             custom_g(Graph): object of our own class with nodes and connections.
-            layout(str): type of layout for ploting ('spring', 'circular', 'spectral', 'random').
+            layout(str): type of layout for plotting ('spring', 'circular', 'spectral', 'random').
         Raises:
             ValueError: not implemented type of layout.
         """
@@ -477,10 +502,6 @@ class Graph(object):
 
             previous = current
             current = new
-            normalizer = sum(list(map(lambda node: node.value, self.nodes[-5:])))
-
-            for j in range(1, 6):
-                self.nodes[-j].set_value(self.nodes[-j].value / normalizer)
 
             nodes_values = {self.nodes[i]: abs(current[i, 0] / np.linalg.norm(current, np.inf))
                             for i in range(len(self.nodes))}
@@ -491,15 +512,15 @@ class Graph(object):
 
             self.update_values(nodes_values)
 
-
             for j in range(1, 6):
                 nodes_values[self.nodes[-j - 1]] = self.nodes[-j - 1].value / normalizer
 
             for index in range(len(self.nodes)):
                 graphical[self.nodes[index].name].append(nodes_values[self.nodes[index]])
+
         return graphical
 
-    def search_cycles(self, limit=3, verbose=False):
+    def search_cycles(self, limit=10, small_amount=True, verbose=False):
         cycles = set()
         for node in self.nodes:
             layer = 0
@@ -516,22 +537,22 @@ class Graph(object):
                     vertexes[layer] = nexts
                 else:
                     break
-
             for length in range(1, len(vertexes)):
                 if node in vertexes[length]:
                     vertexes[length].remove(node)
-                    chains = np.array([[0., node]])
+                    chains = np.array([[1., node]])
                     for layers in reversed(range(length)):
                         chain = copy(chains)
                         for nodes in vertexes[layers]:
                             for i in range(len(chain[:, -1])):
-                                if chain[i][-1] in nodes.connections.keys() and chain[i][-1] != nodes:
+                                if chain[i][-1] in nodes.connections.keys() and nodes not in chain[i][2:]:
                                     new_chain = np.append(chain[i], nodes)
-                                    new_chain[0] = chains[i][0] * np.sign(nodes.connections[chain[i][-1]])
-
+                                    new_chain[0] = chains[i][0]*np.sign(nodes.connections[chain[i][-1]])
                                     if len(chain[0]) == len(chains[0]):
                                         chains = np.hstack((chains, [[0]] * chains.shape[0]))
                                     chains = np.vstack((chains, new_chain))
+                                    if small_amount:
+                                        break
                     for arr in chains:
                         temp = arr[1:][arr[1:] != 0]
                         if temp[0] == temp[-1] and len(temp) > 1:
@@ -539,9 +560,8 @@ class Graph(object):
 
         if verbose:
             for cycle in cycles:
-                print("\nWeight = ", cycle[0])
+                print('\nWeight = ', cycle[0])
                 print(list(map(lambda val: str(val), cycle[1])))
-
         unstable_cycles = list(filter(lambda el: el[0] > 0, cycles))
         return unstable_cycles
 
@@ -612,19 +632,19 @@ class UI(QDialog):
         self.add_vertex_button.setFlat(True)
 
         self.add_vertex_value = QLineEdit()
-        self.add_vertex_value.setPlaceholderText("Name new vertex")
+        self.add_vertex_value.setPlaceholderText("New vertex name ; weight")
 
         self.remove_vertex_button = QPushButton("Remove vertex")
         self.remove_vertex_button.setFlat(True)
 
         self.remove_vertex_value = QLineEdit()
-        self.remove_vertex_value.setPlaceholderText("Name vertex to remove")
+        self.remove_vertex_value.setPlaceholderText("Vertex name")
 
         self.add_connection_button = QPushButton("Add connection")
         self.add_connection_button.setFlat(True)
 
         self.add_connection_value = QLineEdit()
-        self.add_connection_value.setPlaceholderText("Name vertexes to connect")
+        self.add_connection_value.setPlaceholderText("Vertex_from ; vertex_to ; weight")
 
         self.remove_connection_button = QPushButton("Remove connection")
         self.remove_connection_button.setFlat(True)
@@ -633,10 +653,10 @@ class UI(QDialog):
         self.alter_connection_button.setFlat(True)
 
         self.alter_connection_value = QLineEdit()
-        self.alter_connection_value.setPlaceholderText("Name vertexes to alter connection")
+        self.alter_connection_value.setPlaceholderText("Vertex_from ; vertex_to ; weight")
 
         self.remove_connection_value = QLineEdit()
-        self.remove_connection_value.setPlaceholderText("Name vertexes to disconnect")
+        self.remove_connection_value.setPlaceholderText("Vertex_from ; vertex_to")
 
         layout = QGridLayout()
 
@@ -928,14 +948,17 @@ class UI(QDialog):
         dialog.mainLayout.addWidget(dialog.send_impulse, 2, 4, 1, 1)
 
         def send_data():
-            self.graph.form_connection_matrix()
-            self.node_dynamics_dict = self.graph.send_impulses(np.array(list(map(lambda x: float(x),
-                                                                                 data_for_calculations.values()))),
-                                                               int(dialog.impulse_duration.text()))
-            # self.graphical = np.array([dynamic for dynamic in self.graphical.values()]).T
-            self.create_graph_html()
-            self.plot_graph()
-            dialog.close()
+            if dialog.impulse_duration.text():
+                self.graph.form_connection_matrix()
+                self.node_dynamics_dict = self.graph.send_impulses(np.array(list(map(lambda x: float(x),
+                                                                                     data_for_calculations.values()))),
+                                                                   int(dialog.impulse_duration.text()))
+                # self.graphical = np.array([dynamic for dynamic in self.graphical.values()]).T
+                self.create_graph_html()
+                self.plot_graph()
+                dialog.close()
+            else:
+                pass
 
         def append_data():
             dialog.text_box.append(str(dialog.select_nodes_combobox.currentText() +
