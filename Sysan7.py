@@ -8,11 +8,13 @@ from copy import copy
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PyQt5.QtWidgets import QApplication, QLineEdit, QDialog, \
-    QHBoxLayout, QGridLayout, QStyleFactory, QCheckBox, QPushButton, QTabWidget, QTextEdit, QComboBox
+    QGridLayout, QStyleFactory, QCheckBox, QPushButton, QTextEdit, QComboBox, QTabWidget, \
+    QTableWidgetItem, QTableWidget, QWidget, QHBoxLayout
 from PyQt5.QtGui import QPalette, QColor, QIcon
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import Qt
 import sys
+from functools import partial
 
 
 # SelfDrivingCarMap module
@@ -460,34 +462,33 @@ class Graph(object):
         for node in self.nodes:
             node.set_value(nodes_values[node])
 
-    def send_impulses(self, impulse, duration, overall_duration_multiplier=5):
+    def send_impulses(self, impulse, durations, overall_duration):
         previous = np.zeros((len(self.nodes), 1))
         current = np.array([[node.value] for node in self.nodes])
         graphical = {node.name: [] for node in self.nodes}
 
-        for i in range(impulse.shape[0]):
-            self.nodes[i].set_value(1) if impulse[i] != 0 else 0
+        def adjusted_heaviside(val, adjust):
+            return np.heaviside(val - adjust, 0)
 
-        for i in range(duration * overall_duration_multiplier):
+        functions_left = [partial(adjusted_heaviside, adjust=0)] * len(durations)
 
-            impulse = impulse if i < duration * overall_duration_multiplier else np.zeros((impulse.shape[0], 1))
+        functions_right = [partial(adjusted_heaviside, adjust=duration) for duration in durations]
+
+        heavisides = np.array([[functions_left[i](j) - functions_right[i](j) for j in range(overall_duration)]
+                               for i in range(impulse.shape[0])])
+
+        for i in range(overall_duration):
+
+            impulse *= heavisides[:, i]
 
             new = current + np.array(self.A).T @ (current - previous) + impulse
 
             previous = current
             current = new
 
-            nodes_values = {self.nodes[i]: abs(current[i, 0] / np.linalg.norm(current, np.inf))
-                            for i in range(len(self.nodes))}
-
-            normalizer = sum(list(map(lambda node: node.value, self.nodes[-5:])))
-
-            normalizer = normalizer if normalizer != 0 else 1
+            nodes_values = {self.nodes[i]: current[i, 0]for i in range(len(self.nodes))}
 
             self.update_values(nodes_values)
-
-            for j in range(1, 6):
-                nodes_values[self.nodes[-j - 1]] = self.nodes[-j - 1].value / normalizer
 
             for index in range(len(self.nodes)):
                 graphical[self.nodes[index].name].append(nodes_values[self.nodes[index]])
@@ -648,9 +649,28 @@ class UI(QDialog):
         self.middle_box.setLayout(layout)
 
         # graph_box
+        self.graph_box = QTabWidget()
         self.plot_widget = QWebEngineView()
+        self.matrix_widget = QTableWidget()
         self.plot_widget.setHtml("<!DOCTYPE html><html><body style='background-color:grey;'></body></html>")
-        self.plot_widget.setFixedHeight(500)
+        # self.plot_widget.setFixedHeight(300)
+        self.tab1hbox = QGridLayout()
+        self.tab1hbox.addWidget(self.plot_widget, 0, 0)
+        # self.tab1hbox.setContentsMargins(1, 1, 1, 1)
+
+        self.tab2hbox = QGridLayout()
+        # self.tab2hbox.setContentsMargins(1, 1, 1, 1)
+        self.tab2hbox.addWidget(self.matrix_widget, 0, 0)
+
+        self.tab1 = QWidget()
+        self.tab1.setLayout(self.tab1hbox)
+
+        self.tab2 = QWidget()
+        self.tab2.setLayout(self.tab2hbox)
+
+        self.graph_box.setFixedHeight(520)
+        self.graph_box.addTab(self.tab1, "Graph")
+        self.graph_box.addTab(self.tab2, "Matrix")
 
         # bottom_box
         self.bottom_box = QTabWidget()
@@ -688,12 +708,12 @@ class UI(QDialog):
         self.mainLayout = QGridLayout()
         self.mainLayout.addLayout(self.top_box, 0, 0, 1, 7)
         self.mainLayout.addWidget(self.middle_box, 1, 5, 4, 2)
-        self.mainLayout.addWidget(self.plot_widget, 1, 0, 4, 5)
+        self.mainLayout.addWidget(self.graph_box, 1, 0, 4, 5)
         self.mainLayout.addWidget(self.bottom_box, 6, 0, 2, 7)
 
         self.setLayout(self.mainLayout)
 
-        self.resize(1100, 700)
+        self.resize(1280, 720)
         self.originalPalette = QApplication.palette()
         self.change_palette()
 
@@ -747,10 +767,29 @@ class UI(QDialog):
                 self.plot_graph("<!DOCTYPE html><html><body style='background-color:grey;'></body></html>")
             QApplication.setPalette(dark_palette)
 
+    def update_table(self):
+        nodes = [node.name for node in self.graph.nodes]
+        self.matrix_widget.setColumnCount(len(nodes))
+        self.matrix_widget.setHorizontalHeaderLabels(nodes)
+        self.matrix_widget.setRowCount(len(nodes))
+        for row in range(len(nodes)):
+            for column in range(len(nodes)):
+                item = QTableWidgetItem(str(np.array(self.graph.A).round(4)[row, column]))
+                item.setTextAlignment(Qt.AlignHCenter)
+                self.matrix_widget.setItem(row, column, item)
+
     def plot_graph(self, html=None):
+        self.plot_widget.deleteLater()
         self.plot_widget = show_qt(self.netplot.html) if html is None else show_qt(html)
-        self.mainLayout.addWidget(self.plot_widget, 1, 0, 4, 5)
-        self.plot_widget.setFixedHeight(500)
+        self.tab1hbox.addWidget(self.plot_widget, 0, 0)
+        # self.mainLayout.addWidget(self.plot_widget, 1, 0, 4, 5)
+        # self.plot_widget.setFixedHeight(500)
+        self.graph.form_connection_matrix()
+        self.update_table()
+        # np.set_printoptions(edgeitems=500, infstr='inf', linewidth=500)
+        # self.matrix_widget.setText(np.array2string(np.array(self.graph.A),
+        #                                            formatter={'float_kind': lambda x: "%.2f" % x}))
+        # self.matrix_widget.setStyleSheet('''QTextEdit {font: 10pt "Consolas";}''')
 
     def add_vertex(self):
         params = self.add_vertex_value.text().split(' ; ')  # params[0] - name; [1] - weight;
@@ -890,6 +929,7 @@ class UI(QDialog):
     def send_impulse(self):
         dialog = QDialog(self)
         data_for_calculations = {node.name: 0 for node in self.graph.nodes}
+        duration_for_calculations = {node.name: 0 for node in self.graph.nodes}
         dialog.setWindowIcon(QIcon("icon.jpg"))
         dialog.setWindowTitle("Impulse settings")
         dialog.setWindowIconText("Impulse settings")
@@ -899,14 +939,14 @@ class UI(QDialog):
         dialog.select_nodes_combobox = QComboBox()
         dialog.select_nodes_combobox.addItems([node.name for node in self.graph.nodes])
 
-        dialog.select_impulse_magnitude = QLineEdit("")
-        dialog.select_impulse_magnitude.setPlaceholderText("Enter impulse magnitude")
-        dialog.select_impulse_magnitude.setFixedWidth(200)
+        dialog.select_impulse_magnitude_duration = QLineEdit("")
+        dialog.select_impulse_magnitude_duration.setPlaceholderText("Magnitude and duration")
+        dialog.select_impulse_magnitude_duration.setFixedWidth(200)
         dialog.text_box = QTextEdit("")
-        dialog.text_box.setPlaceholderText("Here will be displayed a list of added nodes and their weights")
+        dialog.text_box.setPlaceholderText("Here will be displayed a list of added nodes, their weights and durations")
 
-        dialog.impulse_duration = QLineEdit("")
-        dialog.impulse_duration.setPlaceholderText("Enter impulse duration")
+        dialog.impulse_observation = QLineEdit("")
+        dialog.impulse_observation.setPlaceholderText("Observation time")
 
         dialog.append_impulse = QPushButton("Append impulse")
         dialog.append_impulse.setFlat(True)
@@ -914,19 +954,29 @@ class UI(QDialog):
         dialog.send_impulse = QPushButton("Form impulse")
         dialog.send_impulse.setFlat(True)
 
-        dialog.mainLayout.addWidget(dialog.select_nodes_combobox, 0, 0, 1, 3)
-        dialog.mainLayout.addWidget(dialog.select_impulse_magnitude, 0, 3, 1, 1)
-        dialog.mainLayout.addWidget(dialog.append_impulse, 0, 4, 1, 1)
-        dialog.mainLayout.addWidget(dialog.text_box, 1, 0, 1, 5)
-        dialog.mainLayout.addWidget(dialog.impulse_duration, 2, 0, 1, 4)
-        dialog.mainLayout.addWidget(dialog.send_impulse, 2, 4, 1, 1)
+        dialog.mainLayout.addWidget(dialog.select_nodes_combobox, 0, 0,)
+        dialog.mainLayout.addWidget(dialog.select_impulse_magnitude_duration, 0, 1)
+        dialog.mainLayout.addWidget(dialog.append_impulse, 0, 2)
+        dialog.mainLayout.addWidget(dialog.text_box, 1, 0, 1, 3)
+        dialog.mainLayout.addWidget(dialog.impulse_observation, 2, 0)
+        dialog.mainLayout.addWidget(dialog.send_impulse, 2, 2)
 
         def send_data():
-            if dialog.impulse_duration.text():
+            if dialog.impulse_observation.text():
                 self.graph.form_connection_matrix()
-                self.node_dynamics_dict = self.graph.send_impulses(np.array(list(map(lambda x: float(x),
-                                                                                     data_for_calculations.values()))),
-                                                                   int(dialog.impulse_duration.text()))
+                dynamics_data = self.graph.send_impulses(
+                        np.array(list(map(lambda x: float(x), data_for_calculations.values()))),
+                        np.array(list(map(lambda x: float(x), duration_for_calculations.values()))),
+                        int(dialog.impulse_observation.text())
+                )
+                if self.node_dynamics_dict is None:
+                    self.node_dynamics_dict = dynamics_data
+                else:
+                    for key in dynamics_data.keys():
+                        if key in self.node_dynamics_dict.keys():
+                            self.node_dynamics_dict[key] = np.hstack((self.node_dynamics_dict[key], dynamics_data[key]))
+                        else:
+                            self.node_dynamics_dict[key] = dynamics_data[key]
                 # self.graphical = np.array([dynamic for dynamic in self.graphical.values()]).T
                 self.create_graph_html()
                 self.plot_graph()
@@ -935,11 +985,19 @@ class UI(QDialog):
                 pass
 
         def append_data():
-            dialog.text_box.append(str(dialog.select_nodes_combobox.currentText() +
-                                       " | Magnitude: " + dialog.select_impulse_magnitude.text()))
-            data_for_calculations[dialog.select_nodes_combobox.currentText()] = dialog.select_impulse_magnitude.text()
+            params = dialog.select_impulse_magnitude_duration.text().split(' ')
+            if len(params) != 2:
+                dialog.select_impulse_magnitude_duration.clear()
+                return
+            dialog.text_box.append(str(
+                dialog.select_nodes_combobox.currentText() +
+                " | Magnitude: " + params[0]) +
+                " | Duration: " + params[1]
+                                   )
+            data_for_calculations[dialog.select_nodes_combobox.currentText()] = params[0]
+            duration_for_calculations[dialog.select_nodes_combobox.currentText()] = params[1]
 
-            dialog.select_impulse_magnitude.clear()
+            dialog.select_impulse_magnitude_duration.clear()
 
         dialog.send_impulse.clicked.connect(send_data)
         dialog.append_impulse.clicked.connect(append_data)
@@ -993,21 +1051,23 @@ class UI(QDialog):
         dialog.mainLayout.addWidget(dialog.plot_dynamics_button, 0, 4, 1, 1)
 
         def plot_dynamics():
-            plot_dialog = QDialog(dialog)
-            plot_dialog.canvas = Canvas(title="Scenario dynamics")
-            plot_keys = list(filter(lambda name: data_for_plot[name], self.node_dynamics_dict.keys()))
-            plot_values = np.array([self.node_dynamics_dict[key] for key in plot_keys]).T
-            plot_dialog.canvas.axes.plot(np.arange(0, len(plot_values)),
-                                         plot_values, lw=1)
-            plot_dialog.canvas.axes.legend(plot_keys)
-            plot_dialog.canvas.draw()
+            if self.node_dynamics_dict is not None:
+                plot_dialog = QDialog(dialog)
+                plot_dialog.canvas = Canvas(title="Scenario dynamics")
+                print(self.node_dynamics_dict)
+                plot_keys = list(filter(lambda name: data_for_plot.get(name), self.node_dynamics_dict.keys()))
+                plot_values = np.array([self.node_dynamics_dict[key] for key in plot_keys]).T
+                plot_dialog.canvas.axes.plot(np.arange(0, len(plot_values)),
+                                             plot_values, lw=1)
+                plot_dialog.canvas.axes.legend(plot_keys)
+                plot_dialog.canvas.draw()
 
-            layout = QGridLayout()
-            layout.addWidget(plot_dialog.canvas)
+                layout = QGridLayout()
+                layout.addWidget(plot_dialog.canvas)
 
-            plot_dialog.setLayout(layout)
-            plot_dialog.resize(800, 500)
-            plot_dialog.show()
+                plot_dialog.setLayout(layout)
+                plot_dialog.resize(800, 500)
+                plot_dialog.show()
             dialog.close()
 
         def append_data():
