@@ -15,33 +15,7 @@ from PyQt5.QtCore import Qt
 import sys
 
 
-# create_swot_table.py module
-inner_environ = [
-    "Rational Fuel Usage",
-    "Adequate Price",
-    "State-of-the-Art Software",
-    "Impoved Hardware",
-    "Confidentiality Problem",
-    "Vehicle to Vehicle Connection",
-    "GPS/Internet quality",
-    "Systems to prevent Traffic Jams",
-    "Less Polution"]
-outer_environ = [
-    "Ecology",
-    "Market",
-    "Social Acceptance",
-    "Technologies",
-    "Legal System",
-    "--Jobs--"]
-goal = [
-    "Life Safety",
-    "Data Safety",
-    "Independancy on Man",
-    "Low Production Price",
-    "High Sales"
-]
-
-
+# SelfDrivingCarMap module
 class SelfDrivingCarMap:
     def __init__(self):
         actions = [
