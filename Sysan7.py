@@ -26,7 +26,7 @@ class SelfDrivingCarMap:
             "Invest into Car Technologies",
             "Invest into Crypto Technologies",
             "Invest into Software Development",
-            "Invest into Advertisments",
+            "Invest into Advertisements",
             "Invest into Education",
             "Create Service Centres",
             "Decrease Fuel Price",
@@ -39,16 +39,47 @@ class SelfDrivingCarMap:
             "Develop New Laws",
             "Develop GPS Technologies",
             "Develop Safety Systems",
-            "Develop New Laws",
-            "Develop Better GPS",
             "Increase Social Awareness",
         ]
+        inner_environ = [
+            "Rational Fuel Usage",
+            "Adequate Price",
+            "State-of-the-Art Software",
+            "Improved Hardware",
+            "Confidentiality Problem",
+            "Vehicle to Vehicle Connection",
+            "GPS/Internet quality",
+            "Systems to prevent Traffic Jams",
+            "Less Pollution"
+        ]
+        outer_environ = [
+            "Ecology",
+            "Market",
+            "Social Acceptance",
+            "Technologies",
+            "Legal System",
+            "--Jobs--"
+        ]
+
+        goal = [
+            "Life Safety",
+            "Data Safety",
+            "Independency on Man",
+            "Low Production Price",
+            "High Sales",
+        ]
         self.actions = actions
+        self.goal = goal
+        self.outer_environ = outer_environ
+        self.inner_environ = inner_environ
         self.connections = None
 
     def form_connections(self):
-        self.connections = pd.read_csv("final_cognitive.csv").set_index("Unnamed: 0")
+        self.connections = pd.read_csv("final_cognitive_changed.csv").set_index("Unnamed: 0")
         return self.connections
+
+    def get_classes(self):
+        return self.actions, self.inner_environ, self.outer_environ, self.goal
 
 
 # networkxplotter.py module
@@ -397,7 +428,7 @@ def form_subgraphs(clusters):
 
 class Graph(object):
     def __init__(self, name):
-        # print("Let me create that starnge GRAPH boi!")
+        # print("Let me create that strange GRAPH boi!")
         self.name = name
         self.nodes = []
         self.A = []
@@ -495,7 +526,7 @@ class Graph(object):
 
         return graphical
 
-    def search_cycles(self, limit=10, small_amount=True, verbose=False):
+    def search_cycles(self, limit=15, small_amount=True, verbose=False):
         cycles = set()
         for node in self.nodes:
             layer = 0
@@ -537,22 +568,25 @@ class Graph(object):
             for cycle in cycles:
                 print('\nWeight = ', cycle[0])
                 print(list(map(lambda val: str(val), cycle[1])))
-        unstable_cycles = list(filter(lambda el: el[0] > 0, cycles))
-        return unstable_cycles
+        return cycles
 
     def get_eigens(self):
+        self.form_connection_matrix()
         return np.linalg.eig(self.A)[0]
 
     def stability(self):
         try:
             max_eigen = max(abs(self.get_eigens()))
             if max_eigen < 1:
-                return True
+                state = 'Stable\nEigens = '
             else:
-                return False
+                state = 'Not Stable\nEigens = '
+            np.set_printoptions(edgeitems=500, infstr='inf', linewidth=500)
+            return state + np.array_str(np.round(np.abs(self.get_eigens()), 2))
+
         except np.linalg.LinAlgError:
             print("one dimensional array")
-            return False
+            return "Not stable"
 
 
 class Canvas(FigureCanvas):
@@ -683,7 +717,7 @@ class UI(QDialog):
         self.check_numerical_stability_button = QPushButton("Check numerical stability")
         self.check_numerical_stability_button.setFlat(True)
 
-        self.numerical_stability_value = QLineEdit()
+        self.numerical_stability_value = QTextEdit()
         self.numerical_stability_value.setPlaceholderText("Here will be displayed if "
                                                           "the graph is numerically stable or not")
         layout = QGridLayout()
@@ -865,7 +899,7 @@ class UI(QDialog):
             self.structural_stability_value.setText("No cycles detected")
 
     def check_numerical_stability(self):
-        stability = "Stable" if self.graph.stability() else "Not Stable"
+        stability = self.graph.stability()
         self.numerical_stability_value.setText(stability)
         pass
 
@@ -1054,7 +1088,7 @@ class UI(QDialog):
             if self.node_dynamics_dict is not None:
                 plot_dialog = QDialog(dialog)
                 plot_dialog.canvas = Canvas(title="Scenario dynamics")
-                print(self.node_dynamics_dict)
+                # print(self.node_dynamics_dict)
                 plot_keys = list(filter(lambda name: data_for_plot.get(name), self.node_dynamics_dict.keys()))
                 plot_values = np.array([self.node_dynamics_dict[key] for key in plot_keys]).T
                 plot_dialog.canvas.axes.plot(np.arange(0, len(plot_values)),
